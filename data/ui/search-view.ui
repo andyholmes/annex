@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template class="AnnexSearchView" parent="GtkBox">
+    <property name="orientation">vertical</property>
+    <child>
+      <object class="GtkSearchBar" id="searchBar">
+        <property name="search-mode-enabled">1</property>
+        <child>
+          <object class="GtkCenterBox">
+            <property name="hexpand">1</property>
+            <child type="center">
+              <object class="GtkSearchEntry">
+                <signal name="search-changed"
+                        handler="_onSearchChanged"
+                        object="AnnexSearchView"
+                        swapped="no"/>
+              </object>
+            </child>
+            <child type="end">
+              <object class="GtkComboBoxText" id="searchSort">
+                <items>
+                  <item translatable="yes" id="name">Name</item>
+                  <item translatable="yes" id="recent">Recent</item>
+                  <item translatable="yes" id="downloads">Downloads</item>
+                  <item translatable="yes" id="popularity">Popularity</item>
+                </items>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkSeparator"/>
+    </child>
+    <child>
+      <object class="GtkScrolledWindow">
+        <property name="hscrollbar-policy">never</property>
+        <property name="vexpand">true</property>
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">vertical</property>
+            <property name="margin-top">32</property>
+            <property name="margin-bottom">32</property>
+            <property name="margin-start">32</property>
+            <property name="margin-end">32</property>
+            <property name="spacing">18</property>
+            <child>
+              <object class="GtkFrame">
+                <child>
+                  <object class="GtkListBox" id="searchResults">
+                    <property name="selection-mode">none</property>
+                    <property name="show-separators">1</property>
+                    <signal name="row-activated"
+                            handler="_onRowActivated"
+                            object="AnnexSearchView"
+                            swapped="no"/>
+                    <child type="placeholder">
+                      <object class="GtkLabel" id="placeholderLabel">
+                        <property name="label">No results</property>
+                        <property name="margin-top">18</property>
+                        <property name="margin-bottom">18</property>
+                        <attributes>
+                          <attribute name="scale" value="1.2"/>
+                        </attributes>
+                        <style>
+                          <class name="dim-label"/>
+                        </style>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkCenterBox" id="searchPager">
+                <property name="hexpand">1</property>
+                <child type="start">
+                  <object class="GtkButton">
+                    <property name="icon-name">go-previous-symbolic</property>
+                    <property name="action-name">search.prev-page</property>
+                  </object>
+                </child>
+                <child type="end">
+                  <object class="GtkButton">
+                    <property name="icon-name">go-next-symbolic</property>
+                    <property name="action-name">search.next-page</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>

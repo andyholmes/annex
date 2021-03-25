@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/ca/andyholmes/Annex">
+    <!-- Application Stylesheet -->
+    <file>css/application.css</file>
+
+    <!-- Icons -->
+    <file>icons/ego-plugin.png</file>
+    <file>icons/ego-plugin.svg</file>
+
+    <!-- UI -->
+    <file>ui/explore-view.ui</file>
+    <file>ui/explore-view-item.ui</file>
+    <file>ui/extension-view.ui</file>
+    <file>ui/installed-view.ui</file>
+    <file>ui/installed-view-row.ui</file>
+    <file>ui/search-view.ui</file>
+    <file>ui/search-view-row.ui</file>
+    <file>ui/window.ui</file>
+  </gresource>
+</gresources>

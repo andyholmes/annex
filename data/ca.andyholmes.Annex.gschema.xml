@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="annex">
+  <schema id="ca.andyholmes.Annex" path="/ca/andyholmes/Annex/">
+    <key name="version-filter" type="b">
+      <default>true</default>
+      <summary>Version Filter</summary>
+      <description>Filter search results for the current GNOME Shell version</description>
+    </key>
+  </schema>
+</schemalist>

@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template class="AnnexExtensionView" parent="GtkBox">
+    <property name="orientation">vertical</property>
+    <child>
+      <object class="GtkGrid">
+        <property name="margin-start">18</property>
+        <property name="margin-end">18</property>
+        <property name="margin-top">18</property>
+        <property name="margin-bottom">18</property>
+        <property name="column-spacing">12</property>
+        <child>
+          <object class="GtkImage" id="iconImage">
+            <property name="icon-name">plugin</property>
+            <property name="pixel-size">32</property>
+            <property name="valign">center</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="row">0</property>
+              <property name="row-span">2</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="nameLabel">
+            <property name="ellipsize">end</property>
+            <property name="hexpand">1</property>
+            <property name="xalign">0</property>
+            <attributes>
+              <attribute name="weight" value="bold"/>
+              <attribute name="scale" value="1.2"/>
+            </attributes>
+            <layout>
+              <property name="column">1</property>
+              <property name="row">0</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="creatorLabel">
+            <property name="hexpand">1</property>
+            <property name="use-markup">1</property>
+            <property name="xalign">0</property>
+            <layout>
+              <property name="column">1</property>
+              <property name="row">1</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="actionArea">
+            <property name="spacing">12</property>
+            <child>
+              <object class="GtkButton" id="installButton">
+                <property name="action-name">view.install</property>
+                <property name="label" translatable="yes">Install</property>
+                <property name="valign">center</property>
+                <property name="visible"
+                          bind-source="installButton"
+                          bind-property="sensitive"
+                          bind-flags="sync-create"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="uninstallButton">
+                <property name="action-name">view.uninstall</property>
+                <property name="label" translatable="yes">Remove</property>
+                <property name="valign">center</property>
+                <property name="visible"
+                          bind-source="uninstallButton"
+                          bind-property="sensitive"
+                          bind-flags="sync-create"/>
+                <style>
+                  <class name="destructive-action"/>
+                </style>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="prefsButton">
+                <property name="action-name">view.prefs</property>
+                <property name="icon-name">emblem-system-symbolic</property>
+                <property name="valign">center</property>
+                <property name="visible"
+                          bind-source="prefsButton"
+                          bind-property="sensitive"
+                          bind-flags="sync-create"/>
+              </object>
+            </child>
+            <layout>
+              <property name="column">2</property>
+              <property name="row">0</property>
+              <property name="row-span">2</property>
+            </layout>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkSeparator"/>
+    </child>
+    <child>
+      <object class="GtkScrolledWindow">
+        <property name="hscrollbar-policy">never</property>
+        <property name="hexpand">1</property>
+        <property name="vexpand">1</property>
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">vertical</property>
+
+            <!-- Screenshot -->
+            <child>
+              <object class="GtkBox" id="screenshotBox">
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkPicture" id="screenshotPicture">
+                    <property name="halign">center</property>
+                    <property name="height-request">256</property>
+                    <property name="margin-top">18</property>
+                    <property name="margin-bottom">18</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSeparator"/>
+                </child>
+                <style>
+                  <class name="view"/>
+                </style>
+              </object>
+            </child>
+
+            <!-- Description -->
+            <child>
+              <object class="GtkBox" id="descriptionBox">
+                <property name="margin-start">18</property>
+                <property name="margin-end">18</property>
+                <property name="margin-top">18</property>
+                <property name="margin-bottom">18</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">12</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">Description</property>
+                    <property name="xalign">0</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="descriptionLabel">
+                    <property name="wrap">1</property>
+                    <property name="wrap-mode">word-char</property>
+                    <property name="xalign">0</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+
+            <!-- More information -->
+            <child>
+              <object class="GtkBox" id="informationBox">
+                <property name="margin-start">18</property>
+                <property name="margin-end">18</property>
+                <property name="margin-top">18</property>
+                <property name="margin-bottom">18</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">12</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">More Information</property>
+                    <property name="xalign">0</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkFrame">
+                    <child>
+                      <object class="GtkListBox">
+                        <property name="selection-mode">none</property>
+                        <property name="show-separators">1</property>
+                        <child>
+                          <object class="GtkListBoxRow" id="websiteRow">
+                            <property name="action-name">view.website</property>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="margin-start">12</property>
+                                <property name="margin-end">12</property>
+                                <property name="margin-top">12</property>
+                                <property name="margin-bottom">12</property>
+                                <property name="spacing">12</property>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="icon-name">web-browser-symbolic</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="label" translatable="yes">Website</property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkListBoxRow" id="versionsRow">
+                            <property name="action-name">view.versions</property>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="margin-start">12</property>
+                                <property name="margin-end">12</property>
+                                <property name="margin-top">12</property>
+                                <property name="margin-bottom">12</property>
+                                <property name="spacing">12</property>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="icon-name">dialog-question-symbolic</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="label" translatable="yes">Versions</property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>
+
