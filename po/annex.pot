@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: annex\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-03-27 23:38-0700\n"
+"POT-Creation-Date: 2021-03-29 19:25-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,8 +17,8 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: data/ca.andyholmes.Annex.desktop.in:3
-msgid "annex"
+#: data/ca.andyholmes.Annex.desktop.in:3 src/window.js:118
+msgid "Annex"
 msgstr ""
 
 #: data/ca.andyholmes.Annex.gschema.xml:6
@@ -29,79 +29,71 @@ msgstr ""
 msgid "Filter search results for the current GNOME Shell version"
 msgstr ""
 
-#: data/ca.andyholmes.Annex.gschema.xml:11
-msgid "Search Sort"
-msgstr ""
-
-#: data/ca.andyholmes.Annex.gschema.xml:12
-msgid "Search result order"
-msgstr ""
-
 #: data/ui/explore-view.ui:28
 msgid "Popular"
 msgstr ""
 
-#: data/ui/explore-view.ui:39 data/ui/explore-view.ui:83
+#: data/ui/explore-view.ui:49 data/ui/explore-view.ui:115
 msgid "Show All"
 msgstr ""
 
-#: data/ui/explore-view.ui:72
+#: data/ui/explore-view.ui:94
 msgid "Recently Updated"
 msgstr ""
 
-#: data/ui/extension-view.ui:65
+#: data/ui/extension-view.ui:56
 msgid "Install"
 msgstr ""
 
-#: data/ui/extension-view.ui:126
+#: data/ui/extension-view.ui:70
+msgid "Remove"
+msgstr ""
+
+#: data/ui/extension-view.ui:145
 msgid "Description"
 msgstr ""
 
-#: data/ui/extension-view.ui:157
+#: data/ui/extension-view.ui:176
 msgid "More Information"
 msgstr ""
 
-#: data/ui/extension-view.ui:190
+#: data/ui/extension-view.ui:209
 msgid "Website"
 msgstr ""
 
-#: data/ui/extension-view.ui:214
+#: data/ui/extension-view.ui:233
 msgid "Versions"
 msgstr ""
 
-#: data/ui/installed-view.ui:19
-msgid "User"
+#: data/ui/installed-view.ui:25
+msgid "Manually Installed"
 msgstr ""
 
-#: data/ui/installed-view.ui:62 data/ui/search-view.ui:19
-#: data/ui/search-view.ui:128
-msgid "Popularity"
+#: data/ui/installed-view.ui:69
+msgid "Built-In"
 msgstr ""
 
-#: data/ui/installed-view.ui:67 data/ui/search-view.ui:20
-#: data/ui/search-view.ui:133
-msgid "Downloads"
-msgstr ""
-
-#: data/ui/installed-view.ui:72 data/ui/search-view.ui:21
-#: data/ui/search-view.ui:138
+#: data/ui/search-view.ui:22
 msgid "Name"
 msgstr ""
 
-#: data/ui/installed-view.ui:77 data/ui/search-view.ui:22
-#: data/ui/search-view.ui:143
+#: data/ui/search-view.ui:23
 msgid "Recent"
 msgstr ""
 
-#: data/ui/search-view.ui:31
-msgid "Sort"
+#: data/ui/search-view.ui:24
+msgid "Downloads"
 msgstr ""
 
-#: data/ui/window.ui:52
+#: data/ui/search-view.ui:25
+msgid "Popularity"
+msgstr ""
+
+#: data/ui/window.ui:56
 msgid "Explore"
 msgstr ""
 
-#: data/ui/window.ui:72
+#: data/ui/window.ui:75
 msgid "Installed"
 msgstr ""
 
@@ -113,31 +105,27 @@ msgstr ""
 msgid "About Annex"
 msgstr ""
 
-#: src/extensionView.js:158
+#: src/extensionView.js:174
 msgid "Uninstall Extension"
 msgstr ""
 
-#: src/extensionView.js:159
+#: src/extensionView.js:175
 #, javascript-format
 msgid "Uninstall “%s”?"
 msgstr ""
 
-#: src/extensionView.js:164
+#: src/extensionView.js:180
 msgid "Cancel"
 msgstr ""
 
-#: src/extensionView.js:165
+#: src/extensionView.js:181
 msgid "Uninstall"
 msgstr ""
 
-#: src/window.js:115
+#: src/window.js:117
 msgid "translator-credits"
 msgstr ""
 
-#: src/window.js:116
-msgid "Annex"
-msgstr ""
-
-#: src/window.js:117
+#: src/window.js:119
 msgid "Install GNOME Extensions"
 msgstr ""
