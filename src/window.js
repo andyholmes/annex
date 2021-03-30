@@ -102,10 +102,12 @@ var AnnexWindow = GObject.registerClass({
     }
 
     _onSearchToggled(button, _pspec) {
-        if (button.active) {
+        if (button.active)
             this._stack.visible_child_name = 'search';
-            this._previousPage = null;
-        }
+        else if (this._stack.visible_child_name !== 'view')
+            this._stack.visible_child_name = this._previousPage || 'explore';
+
+        this._previousPage = null;
     }
 
     _aboutAction(_action, _parameter) {
