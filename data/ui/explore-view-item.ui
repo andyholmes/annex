@@ -15,7 +15,7 @@
         <property name="column-spacing">12</property>
         <child>
           <object class="GtkImage" id="iconImage">
-            <property name="resource">/ca/andyholmes/Annex/icons/ego-plugin.png</property>
+            <property name="resource">/ca/andyholmes/Annex/icons/ego-plugin.svg</property>
             <property name="pixel-size">32</property>
             <property name="valign">center</property>
             <layout>
