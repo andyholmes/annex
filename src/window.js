@@ -30,8 +30,6 @@ var AnnexWindow = GObject.registerClass({
     _init(application) {
         super._init({application});
 
-        this._history = [];
-
         // GSettings
         this.settings = new Gio.Settings({
             schema_id: 'ca.andyholmes.Annex',
@@ -72,13 +70,18 @@ var AnnexWindow = GObject.registerClass({
      * Simple Navigation
      */
     _onTransitionRunning(_stack, _pspec) {
-        if (this._stack.transition_running)
-            this._previousButton.visible = this._history.length;
-        else
-            return;
+        const page = this._stack.visible_child_name;
 
-        if (this._stack.visible_child_name !== 'view')
+        // Update the buttons during the transition
+        if (this._stack.transition_running) {
+            this._previousButton.visible = (page === 'view');
+            this._searchButton.active = (page === 'search');
+
+        // Update the extension view after the transition
+        } else if (page !== 'view') {
             this._extensionView.extension = null;
+            this._previousPage = null;
+        }
     }
 
     _onBrowse(_action, parameter) {
@@ -89,23 +92,19 @@ var AnnexWindow = GObject.registerClass({
     _onExtensionSelected(page, info) {
         this._extensionView.info = info;
 
-        this._history.push(this._stack.visible_child_name);
+        this._previousPage = this._stack.visible_child_name;
         this._stack.visible_child_name = 'view';
     }
 
     _onPrevious() {
-        if (this._searchButton.active)
-            this._searchButton.active = false;
-        else
-            this._stack.visible_child_name = this._history.pop();
+        this._stack.visible_child_name = this._previousPage;
+        this._previousPage = null;
     }
 
     _onSearchToggled(button, _pspec) {
         if (button.active) {
-            this._history.push(this._stack.visible_child_name);
             this._stack.visible_child_name = 'search';
-        } else {
-            this._stack.visible_child_name = this._history.pop();
+            this._previousPage = null;
         }
     }
 
