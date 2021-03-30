@@ -90,24 +90,16 @@ var ExploreView = GObject.registerClass({
         try {
             /* Query e.g.o */
             const ego = EGO.getDefault();
-            const results = await ego.extensionQuery({
+            const results = await ego.searchExtensions({
                 page: 1,
                 search: '',
                 shell_version: this._version,
                 sort: category,
             });
 
-            const extensions = [];
             const limit = Math.min(SECTION_LIMIT, results.total);
 
-            for (let i = 0; i < limit; i++) {
-                const info = results.extensions[i];
-                const item = new ExtensionInfo(info);
-
-                extensions.push(item);
-            }
-
-            return extensions;
+            return results.extensions.splice(0, limit);
         } catch (e) {
             logError(e);
             return [];

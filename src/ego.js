@@ -382,6 +382,34 @@ var EGO = class {
 
         return this._infos.get(uuid);
     }
+
+    /**
+     * Lookup the extension info for a UUID.
+     *
+     * @param {string} uuid - an extension UUID
+     * @return {ExtensionInfo} extension metadata
+     */
+    async searchExtensions(parameters) {
+        if (parameters.page !== undefined)
+            parameters.page = parameters.page.toString();
+
+        const results = await this.extensionQuery(parameters);
+
+        results.extensions = results.extensions.map(result => {
+            let info = this._infos.get(result.uuid);
+
+            if (info === undefined) {
+                info = new ExtensionInfo(result);
+                this._infos.set(info.uuid, info);
+            } else {
+                info.update(result);
+            }
+
+            return info;
+        });
+
+        return results;
+    }
 };
 
 
@@ -539,7 +567,7 @@ var SearchModel = GObject.registerClass({
             /* Query e.g.o */
             const ego = EGO.getDefault();
 
-            const results = await ego.extensionQuery({
+            const results = await ego.searchExtensions({
                 page: this.page.toString(),
                 search: this.query,
                 shell_version: this.shell_version,
@@ -549,12 +577,9 @@ var SearchModel = GObject.registerClass({
             /* Update the list model */
             const removals = this._items.length;
 
-            this._items = [];
+            this._items = results.extensions;
             this._n_pages = results.numpages;
             this.notify('n-pages');
-
-            for (const info of results.extensions)
-                this._items.push(new ExtensionInfo(info));
 
             this.items_changed(0, removals, this._items.length);
         } catch (e) {
