@@ -31,9 +31,6 @@
       </object>
     </child>
     <child>
-      <object class="GtkSeparator"/>
-    </child>
-    <child>
       <object class="GtkScrolledWindow">
         <property name="hscrollbar-policy">never</property>
         <property name="vexpand">true</property>
