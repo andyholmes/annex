@@ -285,6 +285,27 @@ var EGO = class {
         });
     }
 
+    _requestJson(message) {
+        return new Promise((resolve, reject) => {
+            this._session.queue_message(message, (session, msg) => {
+                try {
+                    if (msg.status_code !== Soup.KnownStatusCode.OK) {
+                        throw new Gio.IOErrorEnum({
+                            code: Gio.IOErrorEnum.FAILED,
+                            message: msg.reason_phrase,
+                        });
+                    }
+
+                    const json = JSON.parse(msg.response_body.data);
+
+                    resolve(json);
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        });
+    }
+
     /**
      *
      */
@@ -320,19 +341,6 @@ var EGO = class {
     }
 
     /**
-     * Send a request for JSON.
-     *
-     * @param {Soup.Message} message - a Soup request
-     * @return {Object} JSON response
-     */
-    async requestJson(message) {
-        const bytes = await this._requestBytes(message);
-        const json = ByteArray.toString(bytes.toArray());
-
-        return JSON.parse(json);
-    }
-
-    /**
      * Request the extension metadata for a UUID.
      *
      * @param {string} uuid - an extension UUID
@@ -342,7 +350,7 @@ var EGO = class {
         const message = Soup.form_request_new_from_hash('GET',
             EXTENSION_INFO_URI, {uuid});
 
-        const json = await this.requestJson(message);
+        const json = await this._requestJson(message);
         const info = new ExtensionInfo(json);
 
         return info;
@@ -365,7 +373,7 @@ var EGO = class {
         const message = Soup.form_request_new_from_hash('GET',
             EXTENSION_QUERY_URI, parameters);
 
-        return this.requestJson(message);
+        return this._requestJson(message);
     }
 
     /**
