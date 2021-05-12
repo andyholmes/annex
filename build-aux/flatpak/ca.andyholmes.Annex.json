@@ -31,7 +31,7 @@
             "sources" : [
                 {
                     "type" : "git",
-                    "url" : "file:///var/home/andrew/Projects/Annex"
+                    "url" : "https://github.com/andyholmes/annex.git"
                 }
             ]
         }
