@@ -492,10 +492,9 @@ var SearchModel = GObject.registerClass({
         page = Math.max(1, Math.min(page, this.n_pages));
 
         if (this._page !== page) {
-            this._page = page
-            this.notify('page');
-
-            this._refresh();
+            this._refresh({
+                page: page.toString(),
+            });
         }
     }
 
@@ -508,13 +507,10 @@ var SearchModel = GObject.registerClass({
 
     set query(query) {
         if (this._query !== query) {
-            this._query = query;
-            this.notify('query');
-
-            this._page = 1;
-            this.notify('page');
-
-            this._refresh();
+            this._refresh({
+                search: query,
+                page: '1',
+            });
         }
     }
 
@@ -527,13 +523,10 @@ var SearchModel = GObject.registerClass({
 
     set shell_version(version) {
         if (this._shell_version !== version) {
-            this._shell_version = version;
-            this.notify('shell-version');
-
-            this._page = 1;
-            this.notify('page');
-
-            this._refresh();
+            this._refresh({
+                shell_version: version,
+                page: '1',
+            });
         }
     }
 
@@ -546,13 +539,10 @@ var SearchModel = GObject.registerClass({
 
     set sort(type) {
         if (this._sort !== type) {
-            this._sort = type;
-            this.notify('sort');
-
-            this._page = 1;
-            this.notify('page');
-
-            this._refresh();
+            this._refresh({
+                sort: type,
+                page: '1',
+            });
         }
     }
 
@@ -568,14 +558,14 @@ var SearchModel = GObject.registerClass({
         return this._items.length;
     }
 
-    async _refresh() {
+    async _refresh(parameters = {}) {
         try {
-            this._activeSearch = {
+            this._activeSearch = Object.assign({
                 page: this.page.toString(),
                 search: this.query,
                 shell_version: this.shell_version,
                 sort: this.sort,
-            };
+            }, parameters);
 
             /* Query e.g.o */
             const ego = EGO.getDefault();
@@ -584,15 +574,38 @@ var SearchModel = GObject.registerClass({
             if (this._activeSearch !== results.parameters)
                 return;
 
+            /* Notify on success */
+            if (this.page !== results.parameters.page) {
+                this._page = results.parameters.page;
+                this.notify('page');
+            }
+
+            if (this.query !== results.parameters.search) {
+                this._query = results.parameters.search;
+                this.notify('query');
+            }
+
+            if (this.shell_version !== results.parameters.shell_version) {
+                this._shell_version = results.parameters.shell_version;
+                this.notify('shell-version');
+            }
+
+            if (this.sort !== results.parameters.sort) {
+                this._sort = results.parameters.sort;
+                this.notify('sort');
+            }
+
+            if (this.n_pages !== results.numpages) {
+                this._n_pages = results.numpages;
+                this.notify('n-pages');
+            }
+
             /* Update the list model */
             const removed = this._items.length;
             const added = results.extensions.length;
 
             this._items = results.extensions;
             this.items_changed(0, removed, added);
-
-            this._n_pages = results.numpages;
-            this.notify('n-pages');
 
             this._activeSearch = null;
         } catch (e) {
