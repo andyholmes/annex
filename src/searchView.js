@@ -135,14 +135,14 @@ var SearchView = GObject.registerClass({
 
         this._nextPage = new Gio.SimpleAction({
             name: 'next-page',
-            enabled: this._model.page < this._model.n_pages,
+            enabled: false,
         });
         this._nextPage.connect('activate', this._switchPage.bind(this));
         actionGroup.add_action(this._nextPage);
 
         this._prevPage = new Gio.SimpleAction({
             name: 'prev-page',
-            enabled: this._model.page > 1,
+            enabled: false,
         });
         this._prevPage.connect('activate', this._switchPage.bind(this));
         actionGroup.add_action(this._prevPage);
