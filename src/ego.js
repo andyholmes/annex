@@ -583,13 +583,15 @@ var SearchModel = GObject.registerClass({
                 return;
 
             /* Update the list model */
-            const removals = this._items.length;
+            const removed = this._items.length;
+            const added = results.extensions.length;
 
             this._items = results.extensions;
+            this.items_changed(0, removed, added);
+
             this._n_pages = results.numpages;
             this.notify('n-pages');
 
-            this.items_changed(0, removals, this._items.length);
             this._activeSearch = null;
         } catch (e) {
             logError(e);
