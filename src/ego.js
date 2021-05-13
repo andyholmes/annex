@@ -492,7 +492,7 @@ var SearchModel = GObject.registerClass({
         if (this._page !== page) {
             this._page = Math.min(Math.max(page, 1), this.n_pages);
             this.notify('page');
-            this.refresh();
+            this._refresh();
         }
     }
 
@@ -511,7 +511,7 @@ var SearchModel = GObject.registerClass({
             this._page = 1;
             this.notify('page');
 
-            this.refresh();
+            this._refresh();
         }
     }
 
@@ -530,7 +530,7 @@ var SearchModel = GObject.registerClass({
             this._page = 1;
             this.notify('page');
 
-            this.refresh();
+            this._refresh();
         }
     }
 
@@ -549,7 +549,7 @@ var SearchModel = GObject.registerClass({
             this._page = 1;
             this.notify('page');
 
-            this.refresh();
+            this._refresh();
         }
     }
 
@@ -565,13 +565,7 @@ var SearchModel = GObject.registerClass({
         return this._items.length;
     }
 
-    /**
-     * Refresh the search. This is done automatically when any of the properties
-     * are changed.
-     *
-     * @return {Promise} A promise for the operation.
-     */
-    async refresh() {
+    async _refresh() {
         try {
             this._activeSearch = {
                 page: this.page.toString(),
