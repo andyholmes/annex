@@ -492,7 +492,9 @@ var SearchModel = GObject.registerClass({
         page = Math.max(1, Math.min(page, this.n_pages));
 
         if (this._page !== page) {
+            this._page = page
             this.notify('page');
+
             this._refresh();
         }
     }
