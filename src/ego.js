@@ -403,6 +403,7 @@ var EGO = class {
 
         const results = await this.extensionQuery(parameters);
 
+        results.parameters = parameters;
         results.extensions = results.extensions.map(result => {
             let info = this._infos.get(result.uuid);
 
