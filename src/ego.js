@@ -489,8 +489,9 @@ var SearchModel = GObject.registerClass({
     }
 
     set page(page) {
+        page = Math.max(1, Math.min(page, this.n_pages));
+
         if (this._page !== page) {
-            this._page = Math.min(Math.max(page, 1), this.n_pages);
             this.notify('page');
             this._refresh();
         }
