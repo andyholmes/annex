@@ -39,7 +39,7 @@ var ExtensionState = {
  * An object representing an installed extension.
  */
 var Extension = GObject.registerClass({
-    GTypeName: 'AppriseExtension',
+    GTypeName: 'AnnexExtension',
     Properties: {
         'description': GObject.ParamSpec.string(
             'description',
@@ -129,7 +129,7 @@ var Extension = GObject.registerClass({
             1
         ),
     },
-}, class Extension extends GObject.Object {
+}, class AnnexExtension extends GObject.Object {
     _init(params = {}) {
         super._init();
         Object.assign(this, params);
