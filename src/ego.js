@@ -573,15 +573,19 @@ var SearchModel = GObject.registerClass({
      */
     async refresh() {
         try {
-            /* Query e.g.o */
-            const ego = EGO.getDefault();
-
-            const results = await ego.searchExtensions({
+            this._activeSearch = {
                 page: this.page.toString(),
                 search: this.query,
                 shell_version: this.shell_version,
                 sort: this.sort,
-            });
+            };
+
+            /* Query e.g.o */
+            const ego = EGO.getDefault();
+            const results = await ego.searchExtensions(this._activeSearch);
+
+            if (this._activeSearch !== results.parameters)
+                return;
 
             /* Update the list model */
             const removals = this._items.length;
@@ -591,6 +595,7 @@ var SearchModel = GObject.registerClass({
             this.notify('n-pages');
 
             this.items_changed(0, removals, this._items.length);
+            this._activeSearch = null;
         } catch (e) {
             logError(e);
         }
