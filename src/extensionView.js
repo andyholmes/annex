@@ -74,7 +74,7 @@ var ExtensionView = GObject.registerClass({
 
         this._installAction = new Gio.SimpleAction({
             name: 'install',
-            enabled: false,
+            enabled: true,
         });
         this._installAction.connect('activate',
             this._onInstallActivated.bind(this));
