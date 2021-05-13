@@ -213,7 +213,9 @@ var ExtensionManager = GObject.registerClass({
 
                         resolve(value.recursiveUnpack());
                     } catch (e) {
-                        Gio.DBusError.strip_remote_error(e);
+                        if (e instanceof Gio.DBusError)
+                            Gio.DBusError.strip_remote_error(e);
+
                         reject(e);
                     }
                 }
@@ -243,7 +245,9 @@ var ExtensionManager = GObject.registerClass({
                     try {
                         proxy.call_finish(result);
                     } catch (e) {
-                        Gio.DBusError.strip_remote_error(e);
+                        if (e instanceof Gio.DBusError)
+                            Gio.DBusError.strip_remote_error(e);
+
                         logError(e, this.g_name);
                     }
                 }
