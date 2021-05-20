@@ -230,10 +230,16 @@ var ExtensionManager = GObject.registerClass({
             }
 
             for (const [uuid, properties] of Object.entries(extensions)) {
-                const extension = new Extension(properties);
+                let extension = this._extensions.get(uuid);
 
-                this._extensions.set(uuid, extension);
-                this.emit('extension-added', extension.uuid, extension);
+                if (extension === undefined) {
+                    extension = new Extension(properties);
+
+                    this._extensions.set(uuid, extension);
+                    this.emit('extension-added', extension.uuid, extension);
+                } else {
+                    extension.update(properties);
+                }
             }
         } catch (e) {
             logError(e);
