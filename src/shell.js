@@ -39,7 +39,7 @@ var ExtensionState = {
  * An object representing an installed extension.
  */
 var Extension = GObject.registerClass({
-    GTypeName: 'AnnexExtension',
+    GTypeName: 'AnnexShellExtension',
     Properties: {
         'description': GObject.ParamSpec.string(
             'description',
@@ -96,7 +96,7 @@ var Extension = GObject.registerClass({
             'State of the extension',
             GObject.ParamFlags.READWRITE,
             ExtensionState.ENABLED, ExtensionState.UNINSTALLED,
-            ExtensionState.ENABLED
+            ExtensionState.UNINSTALLED
         ),
         'type': GObject.ParamSpec.uint(
             'type',
@@ -129,10 +129,24 @@ var Extension = GObject.registerClass({
             1
         ),
     },
-}, class AnnexExtension extends GObject.Object {
+}, class AnnexShellExtension extends GObject.Object {
     _init(params = {}) {
         super._init();
-        Object.assign(this, params);
+
+        this.update(params);
+    }
+
+    /**
+     * Update the extension with @properties.
+     *
+     * @param {Obeject} properties - Extension properties
+     */
+    update(properties = {}) {
+        try {
+            Object.assign(this, properties);
+        } catch (e) {
+            logError(e);
+        }
     }
 });
 
@@ -141,7 +155,7 @@ var Extension = GObject.registerClass({
  * A proxy for the org.gnome.Shell.Extensions interface
  */
 var ExtensionManager = GObject.registerClass({
-    GTypeName: 'AnnexExtensionManager',
+    GTypeName: 'AnnexShellExtensionManager',
     Properties: {
         'shell-version': GObject.ParamSpec.string(
             'shell-version',
@@ -172,7 +186,7 @@ var ExtensionManager = GObject.registerClass({
             ],
         },
     },
-}, class AnnexExtensionManager extends Gio.DBusProxy {
+}, class AnnexShellExtensionManager extends Gio.DBusProxy {
     _init() {
         super._init({
             g_bus_type: Gio.BusType.SESSION,
@@ -181,21 +195,49 @@ var ExtensionManager = GObject.registerClass({
             g_interface_name: 'org.gnome.Shell.Extensions',
         });
 
+        this.connect('notify::g-name-owner',
+            this._onNameOwnerChanged.bind(this));
+
         this.connect('g-properties-changed',
             this._onPropertiesChanged.bind(this));
 
         this.connect('g-signal',
             this._onSignal.bind(this));
+
+        this._extensions = new Map();
     }
 
     static getDefault() {
         if (this.__default === undefined) {
             this.__default = new ExtensionManager();
             this.__default.init(null);
-            this.__default.load();
+            this.__default._load();
         }
 
         return this.__default;
+    }
+
+    async _load() {
+        try {
+            const extensions = await this._call('ListExtensions');
+
+            for (const [uuid, extension] of this._extensions) {
+                if (extensions.hasOwnProperty(uuid))
+                    continue;
+
+                this._extensions.delete(uuid);
+                this.emit('extension-removed', extension.uuid, extension);
+            }
+
+            for (const [uuid, properties] of Object.entries(extensions)) {
+                const extension = new Extension(properties);
+
+                this._extensions.set(uuid, extension);
+                this.emit('extension-added', extension.uuid, extension);
+            }
+        } catch (e) {
+            logError(e);
+        }
     }
 
     _call(name, parameters = null, cancellable = null) {
@@ -232,29 +274,29 @@ var ExtensionManager = GObject.registerClass({
     }
 
     _set(name, value) {
-        try {
-            this.set_cached_property(name, value);
+        this.set_cached_property(name, value);
 
-            this.call(
-                'org.freedesktop.DBus.Properties.Set',
-                new GLib.Variant('(ssv)', [this.g_interface_name, name, value]),
-                Gio.DBusCallFlags.NO_AUTO_START,
-                -1,
-                null,
-                (proxy, result) => {
-                    try {
-                        proxy.call_finish(result);
-                    } catch (e) {
-                        if (e instanceof Gio.DBusError)
-                            Gio.DBusError.strip_remote_error(e);
+        this.call(
+            'org.freedesktop.DBus.Properties.Set',
+            new GLib.Variant('(ssv)', [this.g_interface_name, name, value]),
+            Gio.DBusCallFlags.NO_AUTO_START,
+            -1,
+            null,
+            (proxy, result) => {
+                try {
+                    proxy.call_finish(result);
+                } catch (e) {
+                    if (e instanceof Gio.DBusError)
+                        Gio.DBusError.strip_remote_error(e);
 
-                        logError(e, this.g_name);
-                    }
+                    logError(e);
                 }
-            );
-        } catch (e) {
-            logError(e, this.g_name);
-        }
+            }
+        );
+    }
+
+    _onNameOwnerChanged() {
+        this._load();
     }
 
     _onPropertiesChanged(proxy, changed, _invalidated) {
@@ -273,35 +315,31 @@ var ExtensionManager = GObject.registerClass({
         // log(`${signalName}: ${JSON.stringify(unpacked, null, 2)}`);
 
         if (signalName === 'ExtensionStateChanged') {
-            const [uuid, info] = unpacked;
+            const [uuid, properties] = unpacked;
+            let extension = this._extensions.get(uuid);
 
-            if (this.extensions[uuid] === undefined) {
-                const extension = new Extension(info);
+            if (extension === undefined) {
+                extension = new Extension(properties);
 
-                this.extensions[uuid] = new Extension(info);
+                this._extensions.set(extension.uuid, extension);
                 this.emit('extension-added', extension.uuid, extension);
             } else {
-                Object.assign(this.extensions[uuid], info);
+                extension.update(properties);
             }
         }
 
         if (signalName === 'ExtensionStatusChanged') {
-            const [uuid, state, message] = unpacked;
+            const [uuid, state, message_] = unpacked;
 
             if (state === ExtensionState.UNINSTALLED) {
-                const extension = this.extensions[uuid];
+                const extension = this._extensions.get(uuid);
 
-                delete this.extensions[uuid];
-                this.emit('extension-removed', extension.uuid, extension);
+                if (extension !== undefined) {
+                    this._extensions.delete(uuid);
+                    this.emit('extension-removed', extension.uuid, extension);
+                }
             }
         }
-    }
-
-    get extensions() {
-        if (this._extensions === undefined)
-            this._extensions = {};
-
-        return this._extensions;
     }
 
     get shell_version() {
@@ -316,41 +354,37 @@ var ExtensionManager = GObject.registerClass({
         this._set('UserExtensionsEnabled', GLib.Variant.new_boolean(enabled));
     }
 
-    async load() {
-        try {
-            const extensions = await this._call('ListExtensions', null, null);
-
-            for (const [uuid, info] of Object.entries(extensions)) {
-                const extension = new Extension(info);
-
-                this.extensions[uuid] = extension;
-                this.emit('extension-added', extension.uuid, extension);
-            }
-        } catch (e) {
-            logError(e, 'Loading');
-        }
-    }
-
-    hasExtension(uuid) {
-        return this.extensions.hasOwnProperty(uuid);
-    }
-
     getExtensions() {
-        return Object.values(this.extensions);
+        return this._extensions.values();
     }
 
-    lookupExtension(uuid) {
-        if (this.hasExtension(uuid))
-            return this.extensions[uuid];
+    async lookupExtension(uuid) {
+        let extension = this._extensions.get(uuid);
 
-        return null;
+        if (extension === undefined) {
+            try {
+                const properties = await this._call('GetExtensionInfo',
+                    new GLib.Variant('(s)', [uuid]));
+
+                if (properties.hasOwnProperty('uuid')) {
+                    extension = new Extension(properties);
+
+                    this._extensions.set(uuid, extension);
+                    this.emit('extension-added', extension.uuid, extension);
+                }
+            } catch (e) {
+                logError(e);
+            }
+        }
+
+        return extension || null;
     }
 
     /**
      * Check for updates.
      *
      * @param {Gio.Cancellable} [cancellable] - optional cancellable
-     * @return {Promise<>} success boolean
+     * @return {Promise<boolean>} success boolean
      */
     checkForUpdates(cancellable = null) {
         return this._call('CheckForUpdates', null, cancellable);
@@ -359,11 +393,10 @@ var ExtensionManager = GObject.registerClass({
     /**
      * List installed extensions.
      *
-     * @param {Gio.Cancellable} [cancellable] - optional cancellable
-     * @return {Promise<object>} a dictionary of extensions
+     * @return {Shell.Extension[]} a list of Shell.Extension objects
      */
-    listExtensions(cancellable = null) {
-        return this._call('ListExtensions', null, cancellable);
+    listExtensions() {
+        return this._extensions.values();
     }
 
     /**
@@ -391,11 +424,23 @@ var ExtensionManager = GObject.registerClass({
     }
 
     /**
+     * Get the extension for @uuid.
+     *
+     * @param {string} uuid - an extension UUID
+     * @param {Gio.Cancellable} [cancellable] - optional cancellable
+     * @return {Promise<Object>} extension properties
+     */
+    getExtensionInfo(uuid, cancellable = null) {
+        return this._call('GetExtensionInfo', new GLib.Variant('(s)', [uuid]),
+            cancellable);
+    }
+
+    /**
      * Install an extension from extensions.gnome.org.
      *
      * @param {string} uuid - an extension UUID
      * @param {Gio.Cancellable} [cancellable] - optional cancellable
-     * @return {Promise<string>} result
+     * @return {Promise<string>} result message
      */
     installRemoteExtension(uuid, cancellable = null) {
         return this._call('InstallRemoteExtension',
@@ -419,7 +464,7 @@ var ExtensionManager = GObject.registerClass({
      *
      * @param {string} uuid - an extension UUID
      * @param {Gio.Cancellable} [cancellable] - optional cancellable
-     * @return {Promise<>} result
+     * @return {Promise} operation object
      */
     launchExtensionPrefs(uuid, cancellable = null) {
         return this._call('LaunchExtensionPrefs',

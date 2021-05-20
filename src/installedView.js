@@ -5,8 +5,9 @@
 
 
 const {Gio, GObject, Gtk} = imports.gi;
-const {EGO, ExtensionInfo} = imports.ego;
-const {ExtensionManager, Extension, ExtensionState, ExtensionType} = imports.extensionSystem;
+
+const Ego = imports.ego;
+const Shell = imports.shell;
 
 
 const InstalledViewRow = GObject.registerClass({
@@ -24,14 +25,14 @@ const InstalledViewRow = GObject.registerClass({
             'Extension',
             'The extension object',
             GObject.ParamFlags.READWRITE,
-            Extension.$gtype
+            Shell.Extension.$gtype
         ),
         'info': GObject.ParamSpec.object(
             'info',
             'Extension Info',
             'The extension info object',
             GObject.ParamFlags.READWRITE,
-            ExtensionInfo.$gtype
+            Ego.ExtensionInfo.$gtype
         ),
     },
 }, class AnnexInstalledViewRow extends Gtk.ListBoxRow {
@@ -49,23 +50,20 @@ const InstalledViewRow = GObject.registerClass({
     }
 
     set extension(extension) {
-        if (this.extension !== extension) {
-            this._extension = extension;
+        if (this.extension === extension)
+            return;
 
-            this._nameLabel.label = this.name;
-            this._descriptionLabel.label = this.description.split('\n')[0];
+        this._nameLabel.label = extension.name;
+        this._descriptionLabel.label = extension.description.split('\n')[0];
 
-            extension.connect('notify::state',
-                this._onStateChanged.bind(this));
-            this._onStateChanged(extension);
-        }
+        extension.connect('notify::state',
+            this._onStateChanged.bind(this));
+        this._onStateChanged(extension);
 
-        if (this.extension !== null) {
-            const ego = EGO.getDefault();
-            ego.lookupExtension(this.extension.uuid).then(info => {
-                this.info = info;
-            }).catch(() => {});
-        }
+        this._extension = extension;
+        this.notify('extension');
+
+        this._update();
     }
 
     get info() {
@@ -76,14 +74,16 @@ const InstalledViewRow = GObject.registerClass({
     }
 
     set info(info) {
-        if (this.info !== info) {
-            this._info = info;
-            this.notify('info');
-        }
+        if (this.info === info)
+            return;
 
-        if (this.info !== null) {
-            this._iconImage.gicon = this.info.icon;
-        }
+        if (info && info.icon)
+            this._iconImage.gicon = info.icon;
+        else
+            this._iconImage.gicon = new Gio.ThemedIcon({name: 'ego-plugin'});
+
+        this._info = info;
+        this.notify('info');
     }
 
     get description() {
@@ -109,17 +109,17 @@ const InstalledViewRow = GObject.registerClass({
 
     _onStateChanged(extension, _pspec) {
         switch (extension.state) {
-            case ExtensionState.ENABLED:
+            case Shell.ExtensionState.ENABLED:
                 this._enabledSwitch.state = true;
                 this._enabledSwitch.sensitive = true;
                 break;
 
-            case ExtensionState.DISABLED:
+            case Shell.ExtensionState.DISABLED:
                 this._enabledSwitch.state = false;
                 this._enabledSwitch.sensitive = true;
                 break;
 
-            case ExtensionState.ERROR:
+            case Shell.ExtensionState.ERROR:
                 this._enabledSwitch.sensitive = false;
                 this._enabledSwitch.visible = false;
                 break;
@@ -127,10 +127,10 @@ const InstalledViewRow = GObject.registerClass({
     }
 
     async _onStateSet(widget, state) {
-        const manager = ExtensionManager.getDefault();
+        const manager = Shell.ExtensionManager.getDefault();
 
         try {
-            if (state === (this.extension.state === ExtensionState.ENABLED))
+            if (state === (this.extension.state === Shell.ExtensionState.ENABLED))
                 return true;
 
             if (state)
@@ -143,6 +143,20 @@ const InstalledViewRow = GObject.registerClass({
 
         return true;
     }
+
+    async _update() {
+        if (this.extension) {
+            try {
+                const repository = Ego.Repository.getDefault();
+                const info = await repository.lookupExtension(this.uuid);
+
+                if (info && info.uuid === this.uuid)
+                    this.info = info;
+            } catch (e) {
+                // Silence errors
+            }
+        }
+    }
 });
 
 
@@ -153,10 +167,9 @@ var InstalledView = GObject.registerClass({
         'userList',
         'systemList',
     ],
-    Properties: {}, // model
     Signals: {
         'extension-selected': {
-            param_types: [ExtensionInfo.$gtype],
+            param_types: [GObject.TYPE_STRING],
         },
     },
 }, class AnnexInstalledView extends Gtk.Box {
@@ -166,27 +179,28 @@ var InstalledView = GObject.registerClass({
         const actionGroup = new Gio.SimpleActionGroup();
         this.insert_action_group('search', actionGroup);
 
+        this._systemList.set_sort_func(this._sort);
         this._userList.set_sort_func(this._sort);
 
         // Watch the manager
-        this._manager = ExtensionManager.getDefault();
+        this._manager = Shell.ExtensionManager.getDefault();
 
         this._manager.connect('extension-added',
             this._onExtensionAdded.bind(this));
         this._manager.connect('extension-removed',
             this._onExtensionRemoved.bind(this));
 
-        for (const extension of this._manager.getExtensions())
+        for (const extension of this._manager.listExtensions())
             this._onExtensionAdded(this._manager, extension.uuid, extension);
     }
 
     _onExtensionAdded(_manager, _uuid, extension) {
         const row = new InstalledViewRow(extension);
 
-        if (extension.type === ExtensionType.USER)
+        if (extension.type === Shell.ExtensionType.USER)
             this._userList.append(row);
 
-        if (extension.type === ExtensionType.SYSTEM)
+        if (extension.type === Shell.ExtensionType.SYSTEM)
             this._systemList.append(row);
     }
 
@@ -206,15 +220,8 @@ var InstalledView = GObject.registerClass({
         }
     }
 
-    async _onRowActivated(box, row) {
-        try {
-            const ego = EGO.getDefault();
-
-            const info = await ego.lookupExtension(row.extension.uuid);
-            this.emit('extension-selected', info);
-        } catch (e) {
-            logError(e);
-        }
+    _onRowActivated(_box, row) {
+        this.emit('extension-selected', row.uuid);
     }
 
     _sort(row1, row2) {

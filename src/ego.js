@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // SPDX-FileCopyrightText: 2021 Andy Holmes <andrew.g.r.holmes@gmail.com>
 
-/* exported EGO */
+/* exported Repository, SearchModel */
 
-
-const ByteArray = imports.byteArray;
 const {GLib, GObject, Gio, Soup} = imports.gi;
 
 
@@ -111,16 +109,16 @@ var ExtensionInfo = GObject.registerClass({
 
     _load(info) {
         try {
-            const ego = EGO.getDefault();
+            const repository = Repository.getDefault();
 
             if (info.icon) {
-                ego.requestFile(info.icon).then(file => {
+                repository.requestFile(info.icon).then(file => {
                     this.icon = new Gio.FileIcon({file});
                 }).catch(logError);
             }
 
             if (info.screenshot) {
-                ego.requestFile(info.screenshot).then(file => {
+                repository.requestFile(info.screenshot).then(file => {
                     this.screenshot = file;
                 }).catch(logError);
             }
@@ -151,26 +149,26 @@ var ExtensionInfo = GObject.registerClass({
     }
 
     /**
-     * Update with new JSON info.
+     * Update with new JSON data.
      *
-     * @param {Object} info - An extension info object
-     * @param {string} info.uuid - the UUID
-     * @param {string} info.name - the name
-     * @param {string} info.description - the description
-     * @param {string} info.creator - the creator's username
-     * @param {Object} info.shell_version_map - the version map
+     * @param {Object} properties - An extension info object
+     * @param {string} properties.uuid - the UUID
+     * @param {string} properties.name - the name
+     * @param {string} properties.description - the description
+     * @param {string} properties.creator - the creator's username
+     * @param {Object} properties.shell_version_map - the version map
      */
-    update(info) {
+    update(properties) {
         this.freeze_notify();
 
-        this.uuid = info.uuid;
-        this.name = info.name;
-        this.description = info.description;
-        this.pk = info.pk;
-        this.url = `${BASE_URI}${info.link}`;
+        this.uuid = properties.uuid;
+        this.name = properties.name;
+        this.description = properties.description;
+        this.pk = properties.pk;
+        this.url = `${BASE_URI}${properties.link}`;
 
-        this.creator = info.creator;
-        this.shell_version_map = info.shell_version_map;
+        this.creator = properties.creator;
+        this.shell_version_map = properties.shell_version_map;
 
         this.thaw_notify();
     }
@@ -178,27 +176,63 @@ var ExtensionInfo = GObject.registerClass({
 
 
 /**
- * EGO Singleton
+ * Repository Singleton
  */
-var EGO = class {
-    static getDefault() {
-        if (this.__default === undefined)
-            this.__default = new EGO();
+var Repository = GObject.registerClass({
+    GTypeName: 'AnnexEgoRepository',
+    Properties: {
+        'online': GObject.ParamSpec.boolean(
+            'online',
+            'Online',
+            'Whether the repository is available',
+            GObject.ParamFlags.READABLE,
+            false
+        ),
+    },
+}, class AnnexEgoRepository extends GObject.Object {
+    _init() {
+        super._init();
 
-        return this.__default;
-    }
+        this._extensions = new Map();
 
-    constructor() {
         // File Cache
         this._files = new Map();
         this._files.set('/static/images/plugin.png',
             Gio.File.new_for_uri('resource://ca/andyholmes/Annex/icons/ego-plugin.svg'));
 
-        this._infos = new Map();
+        // Network
+        this._network = Gio.NetworkMonitor.get_default();
+        this._network.connect('notify::connectivity',
+            this._onNetworkChanged.bind(this));
 
         this._session = new Soup.Session({ssl_use_system_ca_file: true});
         Soup.Session.prototype.add_feature.call(this._session,
             new Soup.ProxyResolverDefault());
+
+        this._onNetworkChanged(this._network);
+    }
+
+    static getDefault() {
+        if (this.__default === undefined)
+            this.__default = new Repository();
+
+        return this.__default;
+    }
+
+    get online() {
+        if (this._online === undefined)
+            this._online = false;
+
+        return this._online;
+    }
+
+    _onNetworkChanged(network, _pspec) {
+        const online = network.connectivity === Gio.NetworkConnectivity.FULL;
+
+        if (this.online !== online) {
+            this._online = online;
+            this.notify('online');
+        }
     }
 
     _getFile(uri) {
@@ -218,10 +252,8 @@ var EGO = class {
             this._session.queue_message(message, (session, msg) => {
                 try {
                     if (msg.status_code !== Soup.KnownStatusCode.OK) {
-                        throw new Gio.IOErrorEnum({
-                            code: Gio.IOErrorEnum.FAILED,
-                            message: msg.reason_phrase,
-                        });
+                        throw GLib.Error.new_literal(Soup.http_error_quark(),
+                            msg.status_code, msg.reason_phrase);
                     }
 
                     resolve(msg.response_body_data);
@@ -232,7 +264,7 @@ var EGO = class {
         });
     }
 
-    async _requestFile(dest, message, cancellable = null) {
+    async _requestFile(message, dest, cancellable = null) {
         const sendTask = new Promise((resolve, reject) => {
             this._session.send_async(
                 message,
@@ -269,8 +301,8 @@ var EGO = class {
         return new Promise((resolve, reject) => {
             target.splice_async(
                 source,
-                (Gio.OutputStreamSpliceFlags.CLOSE_SOURCE |
-                 Gio.OutputStreamSpliceFlags.CLOSE_TARGET),
+                Gio.OutputStreamSpliceFlags.CLOSE_SOURCE |
+                    Gio.OutputStreamSpliceFlags.CLOSE_TARGET,
                 GLib.PRIORITY_DEFAULT,
                 cancellable,
                 (stream, result) => {
@@ -290,15 +322,11 @@ var EGO = class {
             this._session.queue_message(message, (session, msg) => {
                 try {
                     if (msg.status_code !== Soup.KnownStatusCode.OK) {
-                        throw new Gio.IOErrorEnum({
-                            code: Gio.IOErrorEnum.FAILED,
-                            message: msg.reason_phrase,
-                        });
+                        throw GLib.Error.new_literal(Soup.http_error_quark(),
+                            msg.status_code, msg.reason_phrase);
                     }
 
-                    const json = JSON.parse(msg.response_body.data);
-
-                    resolve(json);
+                    resolve(JSON.parse(msg.response_body.data));
                 } catch (e) {
                     reject(e);
                 }
@@ -307,69 +335,31 @@ var EGO = class {
     }
 
     /**
-     *
-     */
-    async requestExtension(dest, uuid, version_tag = null) {
-        const parameters = {};
-        const uri = `${EXTENSION_DOWNLOAD_URI}/${uuid}.shell-extension.zip`
-
-        if (version_tag !== null)
-            parameters.version_tag = version_tag;
-        const message = Soup.form_request_new_from_hash('GET',
-            EXTENSION_INFO_URI, parameters);
-
-        const bytes = await this._requestBytes(message);
-        log(`RECEIVED extension ${uuid}, size ${bytes.get_size()}`);
-    }
-
-    /**
      * Send a request for a remote file. The result will be cached locally and
      * a GFile for the local copy will be returned.
      *
-     * @param {string} uri - The URI of a remote resource
+     * @param {string} path - The path of the remote resource
      * @return {Gio.File} a remote file
      */
-    async requestFile(uri) {
-        const file = this._getFile(uri);
+    async requestFile(path) {
+        const file = this._getFile(path);
 
         if (!file.query_exists(null)) {
-            const message = Soup.Message.new('GET', `${BASE_URI}${uri}`);
-            await this._requestFile(file, message);
+            const message = Soup.Message.new('GET', `${BASE_URI}${path}`);
+            await this._requestFile(message, file);
         }
 
         return file;
     }
 
-    /**
-     * Request the extension metadata for a UUID.
-     *
-     * @param {string} uuid - an extension UUID
-     * @return {ExtensionInfo} extension metadata
-     */
-    async extensionInfo(uuid) {
+    _extensionInfo(uuid) {
         const message = Soup.form_request_new_from_hash('GET',
             EXTENSION_INFO_URI, {uuid});
 
-        const json = await this._requestJson(message);
-        const info = new ExtensionInfo(json);
-
-        return info;
+        return this._requestJson(message);
     }
 
-    /**
-     * Request the extension metadata for a UUID.
-     *
-     * @param {Object} parameters - The query parameters
-     * @param {string} parameters.search - The search query
-     * @param {string} parameters.sort - The sort type
-     * @param {string} parameters.page - The page number
-     * @param {string} parameters.shell_version - The GNOME Shell version
-     * @return {Object} extension metadata
-     */
-    extensionQuery(parameters) {
-        if (parameters.page !== undefined)
-            parameters.page = parameters.page.toString();
-
+    _extensionQuery(parameters) {
         const message = Soup.form_request_new_from_hash('GET',
             EXTENSION_QUERY_URI, parameters);
 
@@ -383,43 +373,70 @@ var EGO = class {
      * @return {ExtensionInfo} extension metadata
      */
     async lookupExtension(uuid) {
-        if (!this._infos.has(uuid)) {
-            const info = await this.extensionInfo(uuid);
-            this._infos.set(uuid, info);
+        let extension = this._extensions.get(uuid);
+
+        if (extension === undefined) {
+            try {
+                const properties = await this._extensionInfo(uuid);
+
+                if (properties.hasOwnProperty('uuid')) {
+                    extension = new ExtensionInfo(properties);
+                    this._extensions.set(extension.uuid, extension);
+                }
+            } catch (e) {
+                // Silence errors
+            }
         }
 
-        return this._infos.get(uuid);
+        return extension || null;
     }
 
     /**
-     * Lookup the extension info for a UUID.
+     * Search for extensions matching @parameters.
      *
-     * @param {string} uuid - an extension UUID
+     * @param {Object} parameters - The query parameters
+     * @param {string} parameters.search - The search query
+     * @param {string} parameters.sort - The sort type
+     * @param {string} parameters.page - The page number
+     * @param {string} parameters.shell_version - The GNOME Shell version
      * @return {ExtensionInfo} extension metadata
      */
     async searchExtensions(parameters) {
-        if (parameters.page !== undefined)
-            parameters.page = parameters.page.toString();
+        for (const [key, value] of Object.entries(parameters))
+            parameters[key] = value.toString();
 
-        const results = await this.extensionQuery(parameters);
+        let results = {
+            extensions: [],
+            total: 0,
+            numpages: 1,
+            parameters: parameters,
+            error: null,
+        };
 
-        results.parameters = parameters;
-        results.extensions = results.extensions.map(result => {
-            let info = this._infos.get(result.uuid);
+        try {
+            results = await this._extensionQuery(parameters);
+            results.parameters = parameters;
+            results.error = null;
+            results.extensions = results.extensions.map(result => {
+                let info = this._extensions.get(result.uuid);
 
-            if (info === undefined) {
-                info = new ExtensionInfo(result);
-                this._infos.set(info.uuid, info);
-            } else {
-                info.update(result);
-            }
+                if (info === undefined) {
+                    info = new ExtensionInfo(result);
+                    this._extensions.set(info.uuid, info);
+                } else {
+                    info.update(result);
+                }
 
-            return info;
-        });
+                return info;
+            });
+        } catch (e) {
+            // Silence errors
+            results.error = e;
+        }
 
         return results;
     }
-};
+});
 
 
 /**
@@ -551,7 +568,7 @@ var SearchModel = GObject.registerClass({
     }
 
     vfunc_get_item_type() {
-        return GObject.Object.$gtype;
+        return ExtensionInfo.$gtype;
     }
 
     vfunc_get_n_items() {
@@ -568,8 +585,8 @@ var SearchModel = GObject.registerClass({
             }, parameters);
 
             /* Query e.g.o */
-            const ego = EGO.getDefault();
-            const results = await ego.searchExtensions(this._activeSearch);
+            const repository = Repository.getDefault();
+            const results = await repository.searchExtensions(this._activeSearch);
 
             if (this._activeSearch !== results.parameters)
                 return;

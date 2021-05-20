@@ -5,10 +5,14 @@
 
 
 const {GLib, Gio, GObject, Gtk} = imports.gi;
-const {ExtensionInfo, SearchModel} = imports.ego;
-const {ExtensionManager} = imports.extensionSystem;
+
+const Ego = imports.ego;
+const Shell = imports.shell;
 
 
+/**
+ * A widget representing an installable extension.
+ */
 const SearchViewRow = GObject.registerClass({
     GTypeName: 'AnnexSearchViewRow',
     Template: 'resource:///ca/andyholmes/Annex/ui/search-view-row.ui',
@@ -23,7 +27,7 @@ const SearchViewRow = GObject.registerClass({
             'Result',
             'The search info object',
             GObject.ParamFlags.READWRITE,
-            ExtensionInfo.$gtype
+            Ego.ExtensionInfo.$gtype
         ),
     },
 }, class AnnexSearchViewRow extends Gtk.ListBoxRow {
@@ -41,15 +45,17 @@ const SearchViewRow = GObject.registerClass({
     }
 
     set info(info) {
-        if (this.info !== info) {
-            this._info = info;
+        if (this.info === info)
+            return;
 
-            this._nameLabel.label = this.name;
-            this._descriptionLabel.label = this.description.split('\n')[0];
+        this._nameLabel.label = info.name;
+        this._descriptionLabel.label = info.description.split('\n')[0];
 
-            info.bind_property('icon', this._iconImage, 'gicon',
-                GObject.BindingFlags.SYNC_CREATE);
-        }
+        info.bind_property('icon', this._iconImage, 'gicon',
+            GObject.BindingFlags.SYNC_CREATE);
+
+        this._info = info;
+        this.notify('info');
     }
 
     get description() {
@@ -75,6 +81,9 @@ const SearchViewRow = GObject.registerClass({
 });
 
 
+/**
+ * A widget for displaying the search results of a query.
+ */
 var SearchView = GObject.registerClass({
     GTypeName: 'AnnexSearchView',
     Template: 'resource:///ca/andyholmes/Annex/ui/search-view.ui',
@@ -86,7 +95,7 @@ var SearchView = GObject.registerClass({
     Properties: {}, // model
     Signals: {
         'extension-selected': {
-            param_types: [ExtensionInfo.$gtype],
+            param_types: [GObject.TYPE_STRING],
         },
     },
 }, class AnnexSearchView extends Gtk.Box {
@@ -105,10 +114,10 @@ var SearchView = GObject.registerClass({
             this._onVersionFilterChanged.bind(this));
 
         // Search model
-        this._model = new SearchModel();
+        this._model = new Ego.SearchModel();
 
-        this._model.connect('notify::n-pages',
-            this._onNumPagesChanged.bind(this));
+        this._model.connect('items-changed',
+            this._onItemsChanged.bind(this));
 
         this._searchResults.bind_model(this._model,
             this._createRow.bind(this));
@@ -147,12 +156,18 @@ var SearchView = GObject.registerClass({
         this._prevPage.connect('activate', this._switchPage.bind(this));
         actionGroup.add_action(this._prevPage);
 
-        this._manager = ExtensionManager.getDefault();
         this._onVersionFilterChanged(this.settings, 'version-filter');
     }
 
+    _onItemsChanged(_model, _position, _removed, _added) {
+        const {page, n_pages} = this._model;
+
+        this._prevPage.enabled = page > 1;
+        this._nextPage.enabled = page < n_pages;
+    }
+
     _onRowActivated(box, row) {
-        this.emit('extension-selected', row.info);
+        this.emit('extension-selected', row.uuid);
     }
 
     _onSearchChanged(entry) {
@@ -160,8 +175,10 @@ var SearchView = GObject.registerClass({
     }
 
     _onVersionFilterChanged(settings, key) {
+        const manager = Shell.ExtensionManager.getDefault();
+
         if (settings.get_boolean(key))
-            this._model.shell_version = this._manager.shell_version;
+            this._model.shell_version = manager.shell_version;
         else
             this._model.shell_version = 'all';
     }
@@ -186,11 +203,6 @@ var SearchView = GObject.registerClass({
 
         this._prevPage.enabled = false;
         this._nextPage.enabled = false;
-    }
-
-    _onNumPagesChanged() {
-        this._prevPage.enabled = this._model.page > 1;
-        this._nextPage.enabled = this._model.page < this._model.n_pages;
     }
 });
 

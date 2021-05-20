@@ -89,6 +89,7 @@
                             <property name="margin-top">18</property>
                             <property name="margin-bottom">18</property>
                             <attributes>
+                              <attribute name="scale" value="1.2"/>
                             </attributes>
                             <style>
                               <class name="dim-label"/>

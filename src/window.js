@@ -74,12 +74,12 @@ var AnnexWindow = GObject.registerClass({
 
         // Update the buttons during the transition
         if (this._stack.transition_running) {
-            this._previousButton.visible = (page === 'view');
-            this._searchButton.active = (page === 'search');
+            this._previousButton.visible = page === 'view';
+            this._searchButton.active = page === 'search';
 
         // Update the extension view after the transition
         } else if (page !== 'view') {
-            this._extensionView.extension = null;
+            this._extensionView.uuid = null;
             this._previousPage = null;
         }
     }
@@ -89,8 +89,8 @@ var AnnexWindow = GObject.registerClass({
         this._searchButton.active = true;
     }
 
-    _onExtensionSelected(page, info) {
-        this._extensionView.info = info;
+    _onExtensionSelected(_page, uuid) {
+        this._extensionView.uuid = uuid;
 
         this._previousPage = this._stack.visible_child_name;
         this._stack.visible_child_name = 'view';

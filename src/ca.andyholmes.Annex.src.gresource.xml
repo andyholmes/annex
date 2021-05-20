@@ -3,11 +3,11 @@
   <gresource prefix="/ca/andyholmes/Annex/js">
     <file>ego.js</file>
     <file>exploreView.js</file>
-    <file>extensionSystem.js</file>
     <file>extensionView.js</file>
     <file>installedView.js</file>
     <file>main.js</file>
     <file>searchView.js</file>
+    <file>shell.js</file>
     <file>window.js</file>
   </gresource>
 </gresources>
