@@ -280,8 +280,6 @@ var ExtensionManager = GObject.registerClass({
     }
 
     _set(name, value) {
-        this.set_cached_property(name, value);
-
         this.call(
             'org.freedesktop.DBus.Properties.Set',
             new GLib.Variant('(ssv)', [this.g_interface_name, name, value]),
