@@ -20,7 +20,8 @@ pkglibdir = join_paths(libdir, meson.project_name())
 podir = join_paths(meson.source_root(), 'po')
 
 subdir('data')
-subdir('src')
 subdir('po')
+subdir('src')
+subdir('tests')
 
 meson.add_install_script('build-aux/meson/postinstall.py')
