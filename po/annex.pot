@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: annex\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-03-29 19:25-0700\n"
+"POT-Creation-Date: 2021-05-21 14:33-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: data/ca.andyholmes.Annex.desktop.in:3 src/window.js:118
+#: data/ca.andyholmes.Annex.desktop.in:3 src/window.js:91
 msgid "Annex"
 msgstr ""
 
@@ -29,15 +29,37 @@ msgstr ""
 msgid "Filter search results for the current GNOME Shell version"
 msgstr ""
 
-#: data/ui/explore-view.ui:28
+#: data/ui/explore-view.ui:29
+msgid "Name"
+msgstr ""
+
+#: data/ui/explore-view.ui:30
+msgid "Recent"
+msgstr ""
+
+#: data/ui/explore-view.ui:31
+msgid "Downloads"
+msgstr ""
+
+#: data/ui/explore-view.ui:32
+msgid "Popularity"
+msgstr ""
+
+#: data/ui/explore-view.ui:70
 msgid "Popular"
 msgstr ""
 
-#: data/ui/explore-view.ui:49 data/ui/explore-view.ui:115
+#: data/ui/explore-view.ui:91 data/ui/explore-view.ui:187
 msgid "Show All"
 msgstr ""
 
-#: data/ui/explore-view.ui:94
+#. Display loading and empty the results box
+#: data/ui/explore-view.ui:120 data/ui/explore-view.ui:216
+#: data/ui/explore-view.ui:288 src/exploreView.js:290 src/exploreView.js:322
+msgid "Loading…"
+msgstr ""
+
+#: data/ui/explore-view.ui:166
 msgid "Recently Updated"
 msgstr ""
 
@@ -65,67 +87,51 @@ msgstr ""
 msgid "Versions"
 msgstr ""
 
-#: data/ui/installed-view.ui:25
-msgid "Manually Installed"
-msgstr ""
-
-#: data/ui/installed-view.ui:69
-msgid "Built-In"
-msgstr ""
-
-#: data/ui/search-view.ui:22
-msgid "Name"
-msgstr ""
-
-#: data/ui/search-view.ui:23
-msgid "Recent"
-msgstr ""
-
-#: data/ui/search-view.ui:24
-msgid "Downloads"
-msgstr ""
-
-#: data/ui/search-view.ui:25
-msgid "Popularity"
-msgstr ""
-
-#: data/ui/window.ui:56
-msgid "Explore"
-msgstr ""
-
-#: data/ui/window.ui:75
+#: data/ui/installed-view.ui:25 data/ui/window.ui:83
 msgid "Installed"
 msgstr ""
 
-#: data/ui/window.ui:113
+#: data/ui/installed-view.ui:69
+msgid "System"
+msgstr ""
+
+#: data/ui/window.ui:60
+msgid "Explore"
+msgstr ""
+
+#: data/ui/window.ui:108
 msgid "Hide Unsupported"
 msgstr ""
 
-#: data/ui/window.ui:119
+#: data/ui/window.ui:114
 msgid "About Annex"
 msgstr ""
 
-#: src/extensionView.js:174
+#: src/exploreView.js:309 src/exploreView.js:333
+msgid "No results"
+msgstr ""
+
+#: src/extensionView.js:244
 msgid "Uninstall Extension"
 msgstr ""
 
-#: src/extensionView.js:175
+#: src/extensionView.js:245
 #, javascript-format
 msgid "Uninstall “%s”?"
 msgstr ""
 
-#: src/extensionView.js:180
+#: src/extensionView.js:250
 msgid "Cancel"
 msgstr ""
 
-#: src/extensionView.js:181
+#: src/extensionView.js:251
 msgid "Uninstall"
 msgstr ""
 
-#: src/window.js:117
+#: src/window.js:90
 msgid "translator-credits"
 msgstr ""
 
-#: src/window.js:119
+#: src/window.js:92
 msgid "Install GNOME Extensions"
 msgstr ""

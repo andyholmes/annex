@@ -2,17 +2,15 @@ data/ca.andyholmes.Annex.desktop.in
 data/ca.andyholmes.Annex.gschema.xml
 data/metainfo/ca.andyholmes.Annex.appdata.xml.in
 data/ui/explore-view.ui
-data/ui/explore-view-item.ui
+data/ui/explore-view-row.ui
+data/ui/explore-view-tile.ui
 data/ui/extension-view.ui
 data/ui/installed-view.ui
 data/ui/installed-view-row.ui
-data/ui/search-view.ui
-data/ui/search-view-row.ui
 data/ui/window.ui
 src/exploreView.js
 src/extensionView.js
 src/installedView.js
-src/searchView.js
 src/main.js
 src/window.js
 
