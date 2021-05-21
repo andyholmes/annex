@@ -6,7 +6,6 @@
     <file>extensionView.js</file>
     <file>installedView.js</file>
     <file>main.js</file>
-    <file>searchView.js</file>
     <file>shell.js</file>
     <file>window.js</file>
   </gresource>

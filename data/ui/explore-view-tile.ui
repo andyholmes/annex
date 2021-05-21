@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template class="AnnexExploreViewTile" parent="GtkFrame">
+    <property name="halign">center</property>
+    <property name="height-request">96</property>
+    <property name="width-request">96</property>
+    <style>
+      <class name="view"/>
+      <class name="explore-view-item"/>
+    </style>
+    <child>
+      <object class="GtkBox">
+        <property name="halign">center</property>
+        <property name="margin-bottom">12</property>
+        <property name="margin-end">12</property>
+        <property name="margin-start">12</property>
+        <property name="margin-top">12</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">12</property>
+        <property name="valign">center</property>
+        <child>
+          <object class="GtkImage" id="iconImage">
+            <property name="resource">/ca/andyholmes/Annex/icons/ego-plugin.svg</property>
+            <property name="pixel-size">64</property>
+            <property name="valign">center</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="nameLabel">
+            <property name="ellipsize">end</property>
+            <property name="lines">1</property>
+            <property name="justify">center</property>
+            <property name="max-width-chars">0</property>
+            <property name="width-chars">12</property>
+            <property name="wrap">1</property>
+            <property name="wrap-mode">word-char</property>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>
+

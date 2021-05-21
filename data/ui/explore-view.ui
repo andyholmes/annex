@@ -3,150 +3,335 @@
   <template class="AnnexExploreView" parent="GtkBox">
     <property name="orientation">vertical</property>
     <child>
-      <object class="GtkScrolledWindow">
-        <property name="hscrollbar-policy">never</property>
-        <property name="vexpand">true</property>
+      <object class="GtkSearchBar" id="searchBar">
+        <signal name="notify::search-mode-enabled"
+                handler="_onSearchModeChanged"
+                object="AnnexExploreView"
+                swapped="no"/>
         <child>
-          <object class="GtkBox">
-            <property name="orientation">vertical</property>
-            <property name="margin-top">32</property>
-            <property name="margin-bottom">32</property>
-            <property name="margin-start">32</property>
-            <property name="margin-end">32</property>
-            <property name="spacing">32</property>
-            <property name="valign">start</property>
-
-            <!-- Popular -->
-            <child>
-              <object class="GtkBox">
-                <property name="orientation">vertical</property>
-                <property name="spacing">18</property>
+          <object class="GtkCenterBox">
+            <property name="hexpand">1</property>
+            <child type="center">
+              <object class="GtkSearchEntry" id="searchEntry">
+                <signal name="search-changed"
+                        handler="_onSearchChanged"
+                        object="AnnexExploreView"
+                        swapped="no"/>
+                <signal name="activate"
+                        handler="_onSearchActivate"
+                        object="AnnexExploreView"
+                        swapped="no"/>
+              </object>
+            </child>
+            <child type="end">
+              <object class="GtkComboBoxText" id="searchSort">
+                <items>
+                  <item translatable="yes" id="name">Name</item>
+                  <item translatable="yes" id="recent">Recent</item>
+                  <item translatable="yes" id="downloads">Downloads</item>
+                  <item translatable="yes" id="popularity">Popularity</item>
+                </items>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkStack" id="stack">
+        <property name="interpolate-size">1</property>
+        <property name="transition-type">crossfade</property>
+        <child>
+          <object class="GtkStackPage">
+            <property name="name">welcome</property>
+            <property name="child">
+              <object class="GtkScrolledWindow">
+                <property name="hscrollbar-policy">never</property>
+                <property name="vexpand">true</property>
                 <child>
                   <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                    <property name="margin-top">32</property>
+                    <property name="margin-bottom">32</property>
+                    <property name="margin-start">32</property>
+                    <property name="margin-end">32</property>
+                    <property name="spacing">32</property>
+                    <property name="valign">start</property>
+
+                    <!-- Popular -->
                     <child>
-                      <object class="GtkLabel">
-                        <property name="label" translatable="yes">Popular</property>
-                        <property name="hexpand">1</property>
-                        <property name="xalign">0.0</property>
-                        <attributes>
-                          <attribute name="weight" value="bold"/>
-                              <attribute name="scale" value="1.2"/>
-                        </attributes>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkButton">
-                        <property name="action-name">win.browse</property>
-                        <property name="action-target">'popularity'</property>
-                        <property name="valign">center</property>
+                      <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <property name="spacing">18</property>
                         <child>
                           <object class="GtkBox">
-                            <property name="spacing">6</property>
-                            <property name="margin-end">12</property>
-                            <property name="margin-start">12</property>
                             <child>
                               <object class="GtkLabel">
-                                <property name="label" translatable="yes">Show All</property>
+                                <property name="label" translatable="yes">Popular</property>
+                                <property name="hexpand">1</property>
+                                <property name="xalign">0.0</property>
+                                <attributes>
+                                  <attribute name="weight" value="bold"/>
+                                      <attribute name="scale" value="1.2"/>
+                                </attributes>
                               </object>
                             </child>
                             <child>
-                              <object class="GtkImage">
-                                <property name="icon-name">go-next-symbolic</property>
+                              <object class="GtkButton">
+                                <property name="action-name">search.browse</property>
+                                <property name="action-target">'popularity'</property>
+                                <property name="valign">center</property>
+                                <child>
+                                  <object class="GtkBox">
+                                    <property name="spacing">6</property>
+                                    <property name="margin-end">12</property>
+                                    <property name="margin-start">12</property>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="label" translatable="yes">Show All</property>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkImage">
+                                        <property name="icon-name">go-next-symbolic</property>
+                                        <style>
+                                          <class name="dim-label"/>
+                                        </style>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
                                 <style>
-                                  <class name="dim-label"/>
+                                  <class name="circular"/>
                                 </style>
                               </object>
                             </child>
                           </object>
                         </child>
-                        <style>
-                          <class name="circular"/>
-                        </style>
-                      </object>
-                    </child>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkFlowBox" id="popularResults">
-                    <property name="homogeneous">1</property>
-                    <property name="min-children-per-line">2</property>
-                    <property name="column-spacing">12</property>
-                    <property name="row-spacing">12</property>
-                    <property name="selection-mode">none</property>
-                    <signal name="child-activated"
-                            handler="_onChildActivated"
-                            object="AnnexExploreView"
-                            swapped="no"/>
-                  </object>
-                </child>
-              </object>
-            </child>
-
-            <!-- Recently Updated -->
-            <child>
-              <object class="GtkBox">
-                <property name="orientation">vertical</property>
-                <property name="spacing">18</property>
-                <child>
-                  <object class="GtkBox">
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="label" translatable="yes">Recently Updated</property>
-                        <property name="hexpand">1</property>
-                        <property name="xalign">0.0</property>
-                        <attributes>
-                          <attribute name="weight" value="bold"/>
-                              <attribute name="scale" value="1.2"/>
-                        </attributes>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkButton">
-                        <property name="action-name">win.browse</property>
-                        <property name="action-target">'recent'</property>
-                        <property name="valign">center</property>
                         <child>
-                          <object class="GtkBox">
-                            <property name="spacing">6</property>
-                            <property name="margin-end">12</property>
-                            <property name="margin-start">12</property>
+                          <object class="GtkStack" id="popularStack">
+                            <property name="interpolate-size">1</property>
+                            <property name="transition-type">crossfade</property>
                             <child>
-                              <object class="GtkLabel">
-                                <property name="label" translatable="yes">Show All</property>
+                              <object class="GtkStackPage">
+                                <property name="name">status</property>
+                                <property name="child">
+                                  <object class="GtkLabel" id="popularStatus">
+                                    <property name="label" translatable="yes">Loading…</property>
+                                    <property name="margin-bottom">18</property>
+                                    <property name="margin-top">18</property>
+                                    <attributes>
+                                      <attribute name="scale" value="1.2"/>
+                                    </attributes>
+                                    <style>
+                                      <class name="dim-label"/>
+                                    </style>
+                                  </object>
+                                </property>
                               </object>
                             </child>
                             <child>
-                              <object class="GtkImage">
-                                <property name="icon-name">go-next-symbolic</property>
+                              <object class="GtkStackPage">
+                                <property name="name">results</property>
+                                <property name="child">
+                                  <object class="GtkFlowBox" id="popularResults">
+                                    <property name="column-spacing">12</property>
+                                    <property name="halign">center</property>
+                                    <property name="homogeneous">1</property>
+                                    <property name="min-children-per-line">2</property>
+                                    <property name="row-spacing">12</property>
+                                    <property name="selection-mode">none</property>
+                                    <signal name="child-activated"
+                                            handler="_onChildActivated"
+                                            object="AnnexExploreView"
+                                            swapped="no"/>
+                                  </object>
+                                </property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+
+                    <!-- Recently Updated -->
+                    <child>
+                      <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <property name="spacing">18</property>
+                        <child>
+                          <object class="GtkBox">
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="label" translatable="yes">Recently Updated</property>
+                                <property name="hexpand">1</property>
+                                <property name="xalign">0.0</property>
+                                <attributes>
+                                  <attribute name="weight" value="bold"/>
+                                      <attribute name="scale" value="1.2"/>
+                                </attributes>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkButton">
+                                <property name="action-name">search.browse</property>
+                                <property name="action-target">'recent'</property>
+                                <property name="valign">center</property>
+                                <child>
+                                  <object class="GtkBox">
+                                    <property name="spacing">6</property>
+                                    <property name="margin-end">12</property>
+                                    <property name="margin-start">12</property>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="label" translatable="yes">Show All</property>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkImage">
+                                        <property name="icon-name">go-next-symbolic</property>
+                                        <style>
+                                          <class name="dim-label"/>
+                                        </style>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
                                 <style>
-                                  <class name="dim-label"/>
+                                  <class name="circular"/>
                                 </style>
                               </object>
                             </child>
                           </object>
                         </child>
-                        <style>
-                          <class name="circular"/>
-                        </style>
+                        <child>
+                          <object class="GtkStack" id="recentStack">
+                            <property name="interpolate-size">1</property>
+                            <property name="transition-type">crossfade</property>
+                            <child>
+                              <object class="GtkStackPage">
+                                <property name="name">status</property>
+                                <property name="child">
+                                  <object class="GtkLabel" id="recentStatus">
+                                    <property name="label" translatable="yes">Loading…</property>
+                                    <property name="margin-bottom">18</property>
+                                    <property name="margin-top">18</property>
+                                    <attributes>
+                                      <attribute name="scale" value="1.2"/>
+                                    </attributes>
+                                    <style>
+                                      <class name="dim-label"/>
+                                    </style>
+                                  </object>
+                                </property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkStackPage">
+                                <property name="name">results</property>
+                                <property name="child">
+                                  <object class="GtkFlowBox" id="recentResults">
+                                    <property name="column-spacing">12</property>
+                                    <property name="halign">center</property>
+                                    <property name="homogeneous">1</property>
+                                    <property name="min-children-per-line">2</property>
+                                    <property name="row-spacing">12</property>
+                                    <property name="selection-mode">none</property>
+                                    <signal name="child-activated"
+                                            handler="_onChildActivated"
+                                            object="AnnexExploreView"
+                                            swapped="no"/>
+                                  </object>
+                                </property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkStackPage">
+            <property name="name">search</property>
+            <property name="child">
+              <object class="GtkBox">
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkScrolledWindow">
+                    <property name="hscrollbar-policy">never</property>
+                    <property name="vexpand">true</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <property name="margin-top">32</property>
+                        <property name="margin-bottom">32</property>
+                        <property name="margin-start">32</property>
+                        <property name="margin-end">32</property>
+                        <property name="spacing">18</property>
+                        <child>
+                          <object class="GtkFrame">
+                            <child>
+                              <object class="GtkListBox" id="searchResults">
+                                <property name="selection-mode">none</property>
+                                <property name="show-separators">1</property>
+                                <signal name="row-activated"
+                                        handler="_onRowActivated"
+                                        object="AnnexExploreView"
+                                        swapped="no"/>
+                                <child type="placeholder">
+                                  <object class="GtkLabel" id="searchStatus">
+                                    <property name="label" translatable="yes">Loading…</property>
+                                    <property name="margin-top">18</property>
+                                    <property name="margin-bottom">18</property>
+                                    <attributes>
+                                      <attribute name="scale" value="1.2"/>
+                                    </attributes>
+                                    <style>
+                                      <class name="dim-label"/>
+                                    </style>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
                       </object>
                     </child>
                   </object>
                 </child>
                 <child>
-                  <object class="GtkFlowBox" id="recentResults">
-                    <property name="homogeneous">1</property>
-                    <property name="min-children-per-line">2</property>
-                    <property name="column-spacing">12</property>
-                    <property name="row-spacing">12</property>
-                    <property name="selection-mode">none</property>
-                    <signal name="child-activated"
-                            handler="_onChildActivated"
-                            object="AnnexExploreView"
-                            swapped="no"/>
+                  <object class="GtkActionBar" id="searchPager">
+                    <property name="hexpand">1</property>
+                    <child type="start">
+                      <object class="GtkButton">
+                        <property name="icon-name">go-previous-symbolic</property>
+                        <property name="action-name">search.prev-page</property>
+                        <style>
+                          <class name="flat"/>
+                        </style>
+                      </object>
+                    </child>
+                    <child type="end">
+                      <object class="GtkButton">
+                        <property name="icon-name">go-next-symbolic</property>
+                        <property name="action-name">search.next-page</property>
+                        <style>
+                          <class name="flat"/>
+                        </style>
+                      </object>
+                    </child>
+                    <style>
+                      <class name="content-view"/>
+                    </style>
                   </object>
                 </child>
               </object>
-            </child>
+            </property>
           </object>
         </child>
       </object>

@@ -10,7 +10,6 @@ const {GLib, Gio, GObject, Gtk} = imports.gi;
 const {ExtensionView} = imports.extensionView;
 const {ExploreView} = imports.exploreView;
 const {InstalledView} = imports.installedView;
-const {SearchView} = imports.searchView;
 /* eslint-enable no-unused-vars */
 
 
@@ -23,7 +22,6 @@ var AnnexWindow = GObject.registerClass({
         'installedView',
         'previousButton',
         'searchButton',
-        'searchView',
         'stack',
     ],
 }, class AnnexWindow extends Gtk.ApplicationWindow {
@@ -40,10 +38,10 @@ var AnnexWindow = GObject.registerClass({
 
         // Actions
         action = new Gio.SimpleAction({
-            name: 'previous',
+            name: 'about',
             enabled: true,
         });
-        action.connect('activate', this._onPrevious.bind(this));
+        action.connect('activate', this._onAboutActivated.bind(this));
         this.add_action(action);
 
         action = new Gio.SimpleAction({
@@ -55,15 +53,11 @@ var AnnexWindow = GObject.registerClass({
         this.add_action(action);
 
         action = new Gio.SimpleAction({
-            name: 'about',
+            name: 'previous',
             enabled: true,
         });
-        action.connect('activate', this._aboutAction.bind(this));
+        action.connect('activate', this._onPrevious.bind(this));
         this.add_action(action);
-
-        //
-        this._searchButton.connect('notify::active',
-            this._onSearchToggled.bind(this));
     }
 
     /*
@@ -75,13 +69,37 @@ var AnnexWindow = GObject.registerClass({
         // Update the buttons during the transition
         if (this._stack.transition_running) {
             this._previousButton.visible = page === 'view';
-            this._searchButton.active = page === 'search';
+            this._searchButton.visible = page === 'explore';
 
         // Update the extension view after the transition
         } else if (page !== 'view') {
             this._extensionView.uuid = null;
             this._previousPage = null;
         }
+    }
+
+    /*
+     * Actions
+     */
+    _onAboutActivated(_action, _parameter) {
+        if (this._about === undefined) {
+            this._about = new Gtk.AboutDialog({
+                authors: [
+                    'Andy Holmes <andrew.g.r.holmes@gmail.com>',
+                ],
+                translator_credits: _('translator-credits'),
+                program_name: _('Annex'),
+                comments: _('Install GNOME Extensions'),
+                license_type: Gtk.License.GPL_2_0,
+                logo_icon_name: pkg.name,
+                version: pkg.version,
+                hide_on_close: true,
+                modal: true,
+                transient_for: this,
+            });
+        }
+
+        this._about.present();
     }
 
     _onBrowse(_action, parameter) {
@@ -102,33 +120,11 @@ var AnnexWindow = GObject.registerClass({
     }
 
     _onSearchToggled(button, _pspec) {
-        if (button.active)
-            this._stack.visible_child_name = 'search';
-        else if (this._stack.visible_child_name !== 'view')
-            this._stack.visible_child_name = this._previousPage || 'explore';
-
-        this._previousPage = null;
-    }
-
-    _aboutAction(_action, _parameter) {
-        if (this._about === undefined) {
-            this._about = new Gtk.AboutDialog({
-                authors: [
-                    'Andy Holmes <andrew.g.r.holmes@gmail.com>',
-                ],
-                translator_credits: _('translator-credits'),
-                program_name: _('Annex'),
-                comments: _('Install GNOME Extensions'),
-                license_type: Gtk.License.GPL_2_0,
-                logo_icon_name: pkg.name,
-                version: pkg.version,
-                hide_on_close: true,
-                modal: true,
-                transient_for: this,
-            });
+        if (button.active) {
+            this._stack.visible_child_name = 'explore';
+            this._exploreView.search_mode_enabled = true;
+            this._previousPage = null;
         }
-
-        this._about.present();
     }
 });
 
