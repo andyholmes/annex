@@ -22,7 +22,7 @@
                 <property name="spacing">18</property>
                 <child>
                   <object class="GtkLabel">
-                    <property name="label" translatable="yes">Manually Installed</property>
+                    <property name="label" translatable="yes">Installed</property>
                     <property name="xalign">0.0</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
@@ -66,7 +66,7 @@
                 <property name="spacing">18</property>
                 <child>
                   <object class="GtkLabel">
-                    <property name="label" translatable="yes">Built-In</property>
+                    <property name="label" translatable="yes">System</property>
                     <property name="xalign">0.0</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
