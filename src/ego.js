@@ -104,27 +104,6 @@ var ExtensionInfo = GObject.registerClass({
         super._init();
 
         this.update(info);
-        this._load(info);
-    }
-
-    _load(info) {
-        try {
-            const repository = Repository.getDefault();
-
-            if (info.icon) {
-                repository.requestFile(info.icon).then(file => {
-                    this.icon = new Gio.FileIcon({file});
-                }).catch(logError);
-            }
-
-            if (info.screenshot) {
-                repository.requestFile(info.screenshot).then(file => {
-                    this.screenshot = file;
-                }).catch(logError);
-            }
-        } catch (e) {
-            logError(e);
-        }
     }
 
     get creator_url() {
@@ -159,8 +138,7 @@ var ExtensionInfo = GObject.registerClass({
      * @param {Object} properties.shell_version_map - the version map
      */
     update(properties) {
-        this.freeze_notify();
-
+        // Update native properties
         this.uuid = properties.uuid;
         this.name = properties.name;
         this.description = properties.description;
@@ -170,7 +148,20 @@ var ExtensionInfo = GObject.registerClass({
         this.creator = properties.creator;
         this.shell_version_map = properties.shell_version_map;
 
-        this.thaw_notify();
+        // Query for image data
+        const repository = Repository.getDefault();
+
+        if (properties.icon) {
+            repository.requestFile(properties.icon).then(file => {
+                this.icon = new Gio.FileIcon({file});
+            }).catch(logError);
+        }
+
+        if (properties.screenshot) {
+            repository.requestFile(properties.screenshot).then(file => {
+                this.screenshot = file;
+            }).catch(logError);
+        }
     }
 });
 
