@@ -330,6 +330,11 @@ var ExtensionManager = GObject.registerClass({
             } else {
                 extension.update(properties);
             }
+
+            if (extension.state === ExtensionState.UNINSTALLED) {
+                this._extensions.delete(uuid);
+                this.emit('extension-removed', extension.uuid, extension);
+            }
         }
 
         if (signalName === 'ExtensionStatusChanged') {
