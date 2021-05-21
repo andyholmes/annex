@@ -58,11 +58,11 @@ const InstalledViewRow = GObject.registerClass({
 
         extension.connect('notify::state',
             this._onStateChanged.bind(this));
-        this._onStateChanged(extension);
 
         this._extension = extension;
         this.notify('extension');
 
+        this._onStateChanged();
         this._update();
     }
 
@@ -107,8 +107,8 @@ const InstalledViewRow = GObject.registerClass({
         return this.extension.uuid;
     }
 
-    _onStateChanged(extension, _pspec) {
-        switch (extension.state) {
+    _onStateChanged(_extension, _pspec) {
+        switch (this.extension.state) {
             case Shell.ExtensionState.ENABLED:
                 this._enabledSwitch.state = true;
                 this._enabledSwitch.sensitive = true;
@@ -119,6 +119,7 @@ const InstalledViewRow = GObject.registerClass({
                 this._enabledSwitch.sensitive = true;
                 break;
 
+            case Shell.ExtensionState.OUT_OF_DATE:
             case Shell.ExtensionState.ERROR:
                 this._enabledSwitch.sensitive = false;
                 this._enabledSwitch.visible = false;
@@ -126,19 +127,22 @@ const InstalledViewRow = GObject.registerClass({
         }
     }
 
-    async _onStateSet(widget, state) {
+    _onStateSet(widget, state) {
+        const enabled = this.extension.state === Shell.ExtensionState.ENABLED;
+
+        if (enabled === state)
+            return false;
+
         const manager = Shell.ExtensionManager.getDefault();
 
-        try {
-            if (state === (this.extension.state === Shell.ExtensionState.ENABLED))
-                return true;
-
-            if (state)
-                await manager.enableExtension(this.uuid);
-            else
-                await manager.disableExtension(this.uuid);
-        } catch (e) {
-            logError(e);
+        if (state) {
+            manager.enableExtension(this.uuid).catch(e => {
+                // Silence errors
+            });
+        } else {
+            manager.disableExtension(this.uuid).catch(e => {
+                // Silence errors
+            });
         }
 
         return true;
