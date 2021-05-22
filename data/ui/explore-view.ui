@@ -262,38 +262,43 @@
               <object class="GtkBox">
                 <property name="orientation">vertical</property>
                 <child>
-                  <object class="GtkScrolledWindow">
+                  <object class="GtkScrolledWindow" id="searchScroll">
                     <property name="hscrollbar-policy">never</property>
                     <property name="vexpand">true</property>
                     <child>
-                      <object class="GtkBox">
-                        <property name="orientation">vertical</property>
-                        <property name="margin-top">32</property>
-                        <property name="margin-bottom">32</property>
-                        <property name="margin-start">32</property>
-                        <property name="margin-end">32</property>
-                        <property name="spacing">18</property>
+                      <object class="GtkViewport">
+                        <property name="scroll-to-focus">1</property>
                         <child>
-                          <object class="GtkFrame">
+                          <object class="GtkBox">
+                            <property name="orientation">vertical</property>
+                            <property name="margin-top">32</property>
+                            <property name="margin-bottom">32</property>
+                            <property name="margin-start">32</property>
+                            <property name="margin-end">32</property>
+                            <property name="spacing">18</property>
                             <child>
-                              <object class="GtkListBox" id="searchResults">
-                                <property name="selection-mode">none</property>
-                                <property name="show-separators">1</property>
-                                <signal name="row-activated"
-                                        handler="_onRowActivated"
-                                        object="AnnexExploreView"
-                                        swapped="no"/>
-                                <child type="placeholder">
-                                  <object class="GtkLabel" id="searchStatus">
-                                    <property name="label" translatable="yes">Loading…</property>
-                                    <property name="margin-top">18</property>
-                                    <property name="margin-bottom">18</property>
-                                    <attributes>
-                                      <attribute name="scale" value="1.2"/>
-                                    </attributes>
-                                    <style>
-                                      <class name="dim-label"/>
-                                    </style>
+                              <object class="GtkFrame">
+                                <child>
+                                  <object class="GtkListBox" id="searchResults">
+                                    <property name="selection-mode">none</property>
+                                    <property name="show-separators">1</property>
+                                    <signal name="row-activated"
+                                            handler="_onRowActivated"
+                                            object="AnnexExploreView"
+                                            swapped="no"/>
+                                    <child type="placeholder">
+                                      <object class="GtkLabel" id="searchStatus">
+                                        <property name="label" translatable="yes">Loading…</property>
+                                        <property name="margin-top">18</property>
+                                        <property name="margin-bottom">18</property>
+                                        <attributes>
+                                          <attribute name="scale" value="1.2"/>
+                                        </attributes>
+                                        <style>
+                                          <class name="dim-label"/>
+                                        </style>
+                                      </object>
+                                    </child>
                                   </object>
                                 </child>
                               </object>
@@ -302,32 +307,6 @@
                         </child>
                       </object>
                     </child>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkActionBar" id="searchPager">
-                    <property name="hexpand">1</property>
-                    <child type="start">
-                      <object class="GtkButton">
-                        <property name="icon-name">go-previous-symbolic</property>
-                        <property name="action-name">search.prev-page</property>
-                        <style>
-                          <class name="flat"/>
-                        </style>
-                      </object>
-                    </child>
-                    <child type="end">
-                      <object class="GtkButton">
-                        <property name="icon-name">go-next-symbolic</property>
-                        <property name="action-name">search.next-page</property>
-                        <style>
-                          <class name="flat"/>
-                        </style>
-                      </object>
-                    </child>
-                    <style>
-                      <class name="content-view"/>
-                    </style>
                   </object>
                 </child>
               </object>

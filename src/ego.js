@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // SPDX-FileCopyrightText: 2021 Andy Holmes <andrew.g.r.holmes@gmail.com>
 
-/* exported Repository, SearchModel */
+/* exported Repository, ContinuousResults, PagedResults */
 
 const {GLib, GObject, Gio, Soup} = imports.gi;
 
@@ -431,10 +431,163 @@ var Repository = GObject.registerClass({
 
 
 /**
- * A GListModel for search results.
+ * A GListModel for continuous results.
  */
-var SearchModel = GObject.registerClass({
-    GTypeName: 'AnnexSearchModel',
+var ContinuousResults = GObject.registerClass({
+    GTypeName: 'AnnexEgoContinuousResults',
+    Implements: [Gio.ListModel],
+    Properties: {
+        'query': GObject.ParamSpec.string(
+            'query',
+            'Query',
+            'The seach query',
+            GObject.ParamFlags.READWRITE,
+            ''
+        ),
+        'shell-version': GObject.ParamSpec.string(
+            'shell-version',
+            'Shell Version',
+            'The supported GNOME Shell version',
+            GObject.ParamFlags.READWRITE,
+            'all'
+        ),
+        'sort': GObject.ParamSpec.string(
+            'sort',
+            'Sort',
+            'The sort order',
+            GObject.ParamFlags.READWRITE,
+            SortType.POPULARITY
+        ),
+    },
+}, class AnnexEgoContinuousResults extends GObject.Object {
+    _init(params = {}) {
+        super._init(params);
+
+        this._items = [];
+        this._refresh();
+    }
+
+    get query() {
+        if (this._query === undefined)
+            this._query = '';
+
+        return this._query;
+    }
+
+    set query(query) {
+        if (this.query === query)
+            return;
+
+        this._query = query;
+        this._refresh();
+    }
+
+    get shell_version() {
+        if (this._shell_version === undefined)
+            this._shell_version = 'all';
+
+        return this._shell_version;
+    }
+
+    set shell_version(version) {
+        if (this.shell_version === version)
+            return;
+
+        this._shell_version = version;
+        this._refresh();
+    }
+
+    get sort() {
+        if (this._sort === undefined)
+            this._sort = SortType.POPULARITY;
+
+        return this._sort;
+    }
+
+    set sort(type) {
+        if (this.sort === type)
+            return;
+
+        this._sort = type;
+        this._refresh();
+    }
+
+    vfunc_get_item(position) {
+        return this._items[position] || null;
+    }
+
+    vfunc_get_item_type() {
+        return ExtensionInfo.$gtype;
+    }
+
+    vfunc_get_n_items() {
+        return this._items.length;
+    }
+
+    _refresh() {
+        this._loading = null;
+        this._n_pages = 1;
+        this._page = 0;
+        this._removed = this._items.length;
+
+        this.loadMore();
+    }
+
+    /**
+     * Load more results for the current query, sort and GNOME Shell version.
+     */
+    async loadMore() {
+        try {
+            /* Prepare query */
+            const page = this._page + 1;
+
+            if (page > this._n_pages || this._loading)
+                return;
+
+            this._loading = {
+                page: page,
+                search: this.query,
+                shell_version: this.shell_version,
+                sort: this.sort,
+            };
+
+            /* Query e.g.o */
+            const repository = Repository.getDefault();
+            const results = await repository.searchExtensions(this._loading);
+
+            if (this._loading !== results.parameters)
+                return;
+
+            /* Notify on success */
+            this.notify('query');
+            this.notify('shell-version');
+            this.notify('sort');
+
+            this._n_pages = results.numpages;
+            this._page = Math.max(this._page, results.parameters.page);
+
+            /* Update the list model */
+            const position = (10 * results.parameters.page) - 10;
+            const added = results.extensions.length;
+
+            this._items.splice(position, this._removed, ...results.extensions);
+            this.items_changed(position, this._removed, added);
+            this._removed = 0;
+
+            this._loading = null;
+        } catch (e) {
+            logError(e);
+            this._loading = null;
+        }
+    }
+});
+
+
+/**
+ * A GListModel for paged results.
+ */
+var PagedResults = GObject.registerClass({
+    GTypeName: 'AnnexPagedResults',
     Implements: [Gio.ListModel],
     Properties: {
         'n-pages': GObject.ParamSpec.uint(
@@ -475,7 +628,7 @@ var SearchModel = GObject.registerClass({
             SortType.POPULARITY
         ),
     },
-}, class SearchModel extends GObject.Object {
+}, class AnnexEgoPagedResults extends GObject.Object {
     _init(params = {}) {
         super._init(params);
 
@@ -499,11 +652,12 @@ var SearchModel = GObject.registerClass({
     set page(page) {
         page = Math.max(1, Math.min(page, this.n_pages));
 
-        if (this._page !== page) {
-            this._refresh({
-                page: page.toString(),
-            });
-        }
+        if (this.page === page)
+            return;
+
+        this._refresh({
+            page: page.toString(),
+        });
     }
 
     get query() {
@@ -514,12 +668,13 @@ var SearchModel = GObject.registerClass({
     }
 
     set query(query) {
-        if (this._query !== query) {
-            this._refresh({
-                search: query,
-                page: '1',
-            });
-        }
+        if (this.query === query)
+            return;
+
+        this._refresh({
+            search: query,
+            page: '1',
+        });
     }
 
     get shell_version() {
@@ -530,12 +685,13 @@ var SearchModel = GObject.registerClass({
     }
 
     set shell_version(version) {
-        if (this._shell_version !== version) {
-            this._refresh({
-                shell_version: version,
-                page: '1',
-            });
-        }
+        if (this.shell_version === version)
+            return;
+
+        this._refresh({
+            shell_version: version,
+            page: '1',
+        });
     }
 
     get sort() {
@@ -546,12 +702,13 @@ var SearchModel = GObject.registerClass({
     }
 
     set sort(type) {
-        if (this._sort !== type) {
-            this._refresh({
-                sort: type,
-                page: '1',
-            });
-        }
+        if (this.sort === type)
+            return;
+
+        this._refresh({
+            sort: type,
+            page: '1',
+        });
     }
 
     vfunc_get_item(position) {
@@ -612,13 +769,39 @@ var SearchModel = GObject.registerClass({
             const removed = this._items.length;
             const added = results.extensions.length;
 
-            this._items = results.extensions;
+            this._items.splice(0, removed, ...results.extensions);
             this.items_changed(0, removed, added);
 
             this._activeSearch = null;
         } catch (e) {
             logError(e);
         }
+    }
+
+    /**
+     * Go to the next page.
+     *
+     * @return {boolean} %true if page changed.
+     */
+    next() {
+        if (this.page === this.n_pages)
+            return false;
+
+        this.page += 1;
+        return true;
+    }
+
+    /**
+     * Go to the previous page.
+     *
+     * @return {boolean} %true if page changed.
+     */
+    previous() {
+        if (this.page === 1)
+            return false;
+
+        this.page -= 1;
+        return true;
     }
 });
 

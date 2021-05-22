@@ -167,6 +167,7 @@ var ExploreView = GObject.registerClass({
         'searchBar',
         'searchEntry',
         'searchResults',
+        'searchScroll',
         'searchSort',
         'searchStatus',
         'stack',
@@ -209,10 +210,7 @@ var ExploreView = GObject.registerClass({
         this._repository = Ego.Repository.getDefault();
 
         // Search model
-        this._model = new Ego.SearchModel();
-
-        this._model.connect('items-changed',
-            this._onItemsChanged.bind(this));
+        this._model = new Ego.ContinuousResults();
 
         this._searchResults.bind_model(this._model,
             this._createRow.bind(this));
@@ -224,9 +222,12 @@ var ExploreView = GObject.registerClass({
         });
         actionGroup.add_action(sortAction);
 
+        this._searchScroll.vadjustment.connect('value-changed',
+            this._maybeLoadMore.bind(this));
+
         this._searchSort.active_id = this._model.sort;
-        this._searchSort.bind_property('active-id', this._model, 'sort',
-            GObject.BindingFlags.BIDIRECTIONAL);
+        this._searchSort.connect('notify::active-id',
+            this._onSortChanged.bind(this));
 
         // Search Actions
         this._searchBar.connect_entry(this._searchEntry);
@@ -239,20 +240,6 @@ var ExploreView = GObject.registerClass({
         browseAction.connect('activate',
             this._onBrowseActivated.bind(this));
         actionGroup.add_action(browseAction);
-
-        this._nextAction = new Gio.SimpleAction({
-            name: 'next-page',
-            enabled: false,
-        });
-        this._nextAction.connect('activate', this._switchPage.bind(this));
-        actionGroup.add_action(this._nextAction);
-
-        this._prevAction = new Gio.SimpleAction({
-            name: 'prev-page',
-            enabled: false,
-        });
-        this._prevAction.connect('activate', this._switchPage.bind(this));
-        actionGroup.add_action(this._prevAction);
 
         this._onVersionFilterChanged(this.settings, 'version-filter');
     }
@@ -357,11 +344,18 @@ var ExploreView = GObject.registerClass({
         return new ExtensionViewRow(extension);
     }
 
-    _onItemsChanged(_model, _position, _removed, _added) {
-        const {page, n_pages} = this._model;
+    _maybeLoadMore(adjustment) {
+        const {value, page_size, upper} = adjustment;
 
-        this._prevAction.enabled = page > 1;
-        this._nextAction.enabled = page < n_pages;
+        // If there's less than two pages buffered, start loading more
+        if (upper - (value + page_size) < (2 * page_size))
+            this._model.loadMore();
+    }
+
+    _showSearch() {
+        this._searchBar.search_mode_enabled = true;
+        this._searchScroll.vadjustment.value = 0.0;
+        this._stack.visible_child_name = 'search';
     }
 
     _onRowActivated(_box, row) {
@@ -369,30 +363,32 @@ var ExploreView = GObject.registerClass({
     }
 
     _onBrowseActivated(_action, parameter) {
-        this._model.query = '';
-        this._model.sort = parameter.get_string()[0];
+        const sort = parameter.get_string()[0];
 
-        this._searchBar.search_mode_enabled = true;
-        this._stack.visible_child_name = 'search';
+        this._searchEntry.text = '';
+        this._searchSort.active_id = sort;
+        this._showSearch();
     }
 
-    _onSearchActivate(entry) {
-        this._model.query = entry.text;
-        this._stack.visible_child_name = 'search';
+    _onSearchActivate(_entry) {
+        this._showSearch();
     }
 
-    _onSearchChanged(entry) {
-        this._model.query = entry.text;
-
-        if (entry.text === '')
-            this._stack.visible_child_name = 'welcome';
-        else
-            this._stack.visible_child_name = 'search';
+    _onSearchChanged(_entry) {
+        this._model.query = this._searchEntry.text;
+        this._showSearch();
     }
 
     _onSearchModeChanged(_bar, _pspec) {
-        if (!this._searchBar.search_mode_enabled)
+        if (!this._searchBar.search_mode_enabled) {
             this._stack.visible_child_name = 'welcome';
+            this._searchScroll.vadjustment.value = 0.0;
+        }
+    }
+
+    _onSortChanged(_combo, _pspec) {
+        this._model.sort = this._searchSort.active_id;
+        this._showSearch();
     }
 
     _onVersionFilterChanged(settings, key) {
@@ -406,18 +402,9 @@ var ExploreView = GObject.registerClass({
             this._version = 'all';
         }
 
+        this._searchScroll.vadjustment.value = 0.0;
         this._updatePopular();
         this._updateRecent();
-    }
-
-    _switchPage(action, _parameter) {
-        if (action === this._prevAction)
-            this._model.page--;
-        else
-            this._model.page++;
-
-        this._prevAction.enabled = false;
-        this._nextAction.enabled = false;
     }
 });
 
