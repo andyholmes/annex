@@ -169,7 +169,9 @@ var InstalledView = GObject.registerClass({
     Template: 'resource:///ca/andyholmes/Annex/ui/installed-view.ui',
     InternalChildren: [
         'userList',
+        'userPlaceholder',
         'systemList',
+        'systemPlaceholder',
     ],
     Signals: {
         'extension-selected': {
@@ -222,6 +224,24 @@ var InstalledView = GObject.registerClass({
                 return;
             }
         }
+    }
+
+    _onKeynavFailed(widget, dir) {
+        let child = null;
+
+        if (widget === this._userList && dir === Gtk.DirectionType.DOWN) {
+            child = this._systemList.get_first_child();
+        } else if (widget === this._systemList && dir === Gtk.DirectionType.UP) {
+            child = this._userList.get_last_child();
+
+            if (child === this._userPlaceholder)
+                child = child.get_prev_sibling();
+        }
+
+        if (child)
+            return child.grab_focus();
+
+        return false;
     }
 
     _onRowActivated(_box, row) {
