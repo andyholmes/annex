@@ -264,9 +264,13 @@ var ExtensionManager = GObject.registerClass({
                 (proxy, result) => {
                     try {
                         const reply = proxy.call_finish(result);
-                        const value = reply.get_child_value(0);
 
-                        resolve(value.recursiveUnpack());
+                        if (reply.n_children() === 0) {
+                            resolve();
+                        } else {
+                            const value = reply.get_child_value(0);
+                            resolve(value.recursiveUnpack());
+                        }
                     } catch (e) {
                         if (e instanceof Gio.DBusError)
                             Gio.DBusError.strip_remote_error(e);
