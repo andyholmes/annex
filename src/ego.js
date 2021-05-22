@@ -8,9 +8,9 @@ const {GLib, GObject, Gio, Soup} = imports.gi;
 
 /* URIs */
 const BASE_URI = 'https://extensions.gnome.org';
-const EXTENSION_INFO_URI = `${BASE_URI}/extension-info/`;
-const EXTENSION_QUERY_URI = `${BASE_URI}/extension-query/`;
-const EXTENSION_DOWNLOAD_URI = `${BASE_URI}/download-extension/`;
+const EGO_EXTENSION_INFO = `${BASE_URI}/extension-info/`;
+const EGO_EXTENSION_QUERY = `${BASE_URI}/extension-query/`;
+const EGO_DOWNLOAD_EXTENSION = `${BASE_URI}/download-extension/`;
 
 
 /* Directories */
@@ -345,14 +345,14 @@ var Repository = GObject.registerClass({
 
     _extensionInfo(uuid) {
         const message = Soup.form_request_new_from_hash('GET',
-            EXTENSION_INFO_URI, {uuid});
+            EGO_EXTENSION_INFO, {uuid});
 
         return this._requestJson(message);
     }
 
     _extensionQuery(parameters) {
         const message = Soup.form_request_new_from_hash('GET',
-            EXTENSION_QUERY_URI, parameters);
+            EGO_EXTENSION_QUERY, parameters);
 
         return this._requestJson(message);
     }
