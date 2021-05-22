@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // SPDX-FileCopyrightText: 2021 Andy Holmes <andrew.g.r.holmes@gmail.com>
 
-/* exported Repository, ContinuousResults, PagedResults */
+/* exported Repository, SearchResults */
 
 const {GLib, GObject, Gio, Soup} = imports.gi;
 
@@ -385,7 +385,7 @@ var Repository = GObject.registerClass({
     /**
      * Search for extensions matching @parameters.
      *
-     * @param {Object} parameters - The query parameters
+     * @param {Object} parameters - A dictionary of search parameters
      * @param {string} parameters.search - The search query
      * @param {string} parameters.sort - The sort type
      * @param {string} parameters.page - The page number
@@ -433,161 +433,8 @@ var Repository = GObject.registerClass({
 /**
  * A GListModel for continuous results.
  */
-var ContinuousResults = GObject.registerClass({
-    GTypeName: 'AnnexEgoContinuousResults',
-    Implements: [Gio.ListModel],
-    Properties: {
-        'query': GObject.ParamSpec.string(
-            'query',
-            'Query',
-            'The seach query',
-            GObject.ParamFlags.READWRITE,
-            ''
-        ),
-        'shell-version': GObject.ParamSpec.string(
-            'shell-version',
-            'Shell Version',
-            'The supported GNOME Shell version',
-            GObject.ParamFlags.READWRITE,
-            'all'
-        ),
-        'sort': GObject.ParamSpec.string(
-            'sort',
-            'Sort',
-            'The sort order',
-            GObject.ParamFlags.READWRITE,
-            SortType.POPULARITY
-        ),
-    },
-}, class AnnexEgoContinuousResults extends GObject.Object {
-    _init(params = {}) {
-        super._init(params);
-
-        this._items = [];
-        this._refresh();
-    }
-
-    get query() {
-        if (this._query === undefined)
-            this._query = '';
-
-        return this._query;
-    }
-
-    set query(query) {
-        if (this.query === query)
-            return;
-
-        this._query = query;
-        this._refresh();
-    }
-
-    get shell_version() {
-        if (this._shell_version === undefined)
-            this._shell_version = 'all';
-
-        return this._shell_version;
-    }
-
-    set shell_version(version) {
-        if (this.shell_version === version)
-            return;
-
-        this._shell_version = version;
-        this._refresh();
-    }
-
-    get sort() {
-        if (this._sort === undefined)
-            this._sort = SortType.POPULARITY;
-
-        return this._sort;
-    }
-
-    set sort(type) {
-        if (this.sort === type)
-            return;
-
-        this._sort = type;
-        this._refresh();
-    }
-
-    vfunc_get_item(position) {
-        return this._items[position] || null;
-    }
-
-    vfunc_get_item_type() {
-        return ExtensionInfo.$gtype;
-    }
-
-    vfunc_get_n_items() {
-        return this._items.length;
-    }
-
-    _refresh() {
-        this._loading = null;
-        this._n_pages = 1;
-        this._page = 0;
-        this._removed = this._items.length;
-
-        this.loadMore();
-    }
-
-    /**
-     * Load more results for the current query, sort and GNOME Shell version.
-     */
-    async loadMore() {
-        try {
-            /* Prepare query */
-            const page = this._page + 1;
-
-            if (page > this._n_pages || this._loading)
-                return;
-
-            this._loading = {
-                page: page,
-                search: this.query,
-                shell_version: this.shell_version,
-                sort: this.sort,
-            };
-
-            /* Query e.g.o */
-            const repository = Repository.getDefault();
-            const results = await repository.searchExtensions(this._loading);
-
-            if (this._loading !== results.parameters)
-                return;
-
-            /* Notify on success */
-            this.notify('query');
-            this.notify('shell-version');
-            this.notify('sort');
-
-            this._n_pages = results.numpages;
-            this._page = Math.max(this._page, results.parameters.page);
-
-            /* Update the list model */
-            const position = (10 * results.parameters.page) - 10;
-            const added = results.extensions.length;
-
-            this._items.splice(position, this._removed, ...results.extensions);
-            this.items_changed(position, this._removed, added);
-            this._removed = 0;
-
-            this._loading = null;
-        } catch (e) {
-            logError(e);
-            this._loading = null;
-        }
-    }
-});
-
-
-/**
- * A GListModel for paged results.
- */
-var PagedResults = GObject.registerClass({
-    GTypeName: 'AnnexPagedResults',
+var SearchResults = GObject.registerClass({
+    GTypeName: 'AnnexEgoSearchResults',
     Implements: [Gio.ListModel],
     Properties: {
         'n-pages': GObject.ParamSpec.uint(
@@ -628,11 +475,13 @@ var PagedResults = GObject.registerClass({
             SortType.POPULARITY
         ),
     },
-}, class AnnexEgoPagedResults extends GObject.Object {
+}, class AnnexEgoSearchResults extends GObject.Object {
     _init(params = {}) {
-        super._init(params);
+        super._init();
 
         this._items = [];
+        this._repository = Repository.getDefault();
+        this.configure(params);
     }
 
     get n_pages() {
@@ -643,7 +492,7 @@ var PagedResults = GObject.registerClass({
     }
 
     get page() {
-        if (this._page === undefined || this._page < 1)
+        if (this._page === undefined)
             this._page = 1;
 
         return this._page;
@@ -655,9 +504,7 @@ var PagedResults = GObject.registerClass({
         if (this.page === page)
             return;
 
-        this._refresh({
-            page: page.toString(),
-        });
+        this.configure({page});
     }
 
     get query() {
@@ -671,10 +518,7 @@ var PagedResults = GObject.registerClass({
         if (this.query === query)
             return;
 
-        this._refresh({
-            search: query,
-            page: '1',
-        });
+        this.configure({search: query});
     }
 
     get shell_version() {
@@ -688,10 +532,7 @@ var PagedResults = GObject.registerClass({
         if (this.shell_version === version)
             return;
 
-        this._refresh({
-            shell_version: version,
-            page: '1',
-        });
+        this.configure({shell_version: version});
     }
 
     get sort() {
@@ -705,10 +546,7 @@ var PagedResults = GObject.registerClass({
         if (this.sort === type)
             return;
 
-        this._refresh({
-            sort: type,
-            page: '1',
-        });
+        this.configure({sort: type});
     }
 
     vfunc_get_item(position) {
@@ -723,25 +561,69 @@ var PagedResults = GObject.registerClass({
         return this._items.length;
     }
 
-    async _refresh(parameters = {}) {
+    /**
+     * Configure the result set to match @parameters and reload.
+     *
+     * @param {Object} [parameters] - A dictionary of search parameters
+     * @param {string} [parameters.search] - The search query
+     * @param {string} [parameters.sort] - The sort type
+     * @param {string} [parameters.page] - The page number
+     * @param {string} [parameters.shell_version] - The GNOME Shell version
+     */
+    configure(parameters = {}) {
+        if (parameters.page === undefined) {
+            this._n_pages = 1;
+            this._page = 0;
+        }
+
+        this._removed = this._items.length;
+        this._results = [];
+
+        this.loadMore(parameters);
+    }
+
+    /**
+     * Load more results for the current query, sort and GNOME Shell version.
+     *
+     * @param {Object} parameters - A dictionary of search parameters
+     * @param {string} parameters.search - The search query
+     * @param {string} parameters.sort - The sort type
+     * @param {string} parameters.page - The page number
+     * @param {string} parameters.shell_version - The GNOME Shell version
+     */
+    async loadMore(parameters = {}) {
         try {
-            this._activeSearch = Object.assign({
-                page: this.page.toString(),
+            /* Prepare query */
+            parameters = Object.assign({
+                page: this.page + 1,
                 search: this.query,
                 shell_version: this.shell_version,
                 sort: this.sort,
             }, parameters);
 
-            /* Query e.g.o */
-            const repository = Repository.getDefault();
-            const results = await repository.searchExtensions(this._activeSearch);
+            parameters.page = Math.min(parameters.page, this.n_pages);
 
-            if (this._activeSearch !== results.parameters)
+            if (this._results[parameters.page] === undefined)
+                this._results[parameters.page] = parameters;
+            else
+                return;
+
+            /* Query e.g.o */
+            const results = await this._repository.searchExtensions(parameters);
+
+            if (this._results[results.parameters.page] === results.parameters)
+                this._results[results.parameters.page] = results;
+            else
                 return;
 
             /* Notify on success */
-            if (this.page !== results.parameters.page) {
-                this._page = results.parameters.page;
+            if (this.n_pages !== results.numpages) {
+                this._n_pages = results.numpages;
+                this.notify('n-pages');
+            }
+
+            if (this.page !== parseInt(results.parameters.page)) {
+                this._page = parseInt(results.parameters.page);
                 this.notify('page');
             }
 
@@ -760,48 +642,18 @@ var PagedResults = GObject.registerClass({
                 this.notify('sort');
             }
 
-            if (this.n_pages !== results.numpages) {
-                this._n_pages = results.numpages;
-                this.notify('n-pages');
-            }
-
             /* Update the list model */
-            const removed = this._items.length;
+            const position = (10 * results.parameters.page) - 10;
             const added = results.extensions.length;
 
-            this._items.splice(0, removed, ...results.extensions);
-            this.items_changed(0, removed, added);
+            debug(`items-changed(${position}, ${this._removed}, ${added})`);
 
-            this._activeSearch = null;
+            this._items.splice(position, this._removed, ...results.extensions);
+            this.items_changed(position, this._removed, added);
+            this._removed = 0;
         } catch (e) {
-            logError(e);
+            this._results[parameters.page] = e;
         }
-    }
-
-    /**
-     * Go to the next page.
-     *
-     * @return {boolean} %true if page changed.
-     */
-    next() {
-        if (this.page === this.n_pages)
-            return false;
-
-        this.page += 1;
-        return true;
-    }
-
-    /**
-     * Go to the previous page.
-     *
-     * @return {boolean} %true if page changed.
-     */
-    previous() {
-        if (this.page === 1)
-            return false;
-
-        this.page -= 1;
-        return true;
     }
 });
 

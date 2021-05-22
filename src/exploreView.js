@@ -210,7 +210,7 @@ var ExploreView = GObject.registerClass({
         this._repository = Ego.Repository.getDefault();
 
         // Search model
-        this._model = new Ego.ContinuousResults();
+        this._model = new Ego.SearchResults();
 
         this._searchResults.bind_model(this._model,
             this._createRow.bind(this));
