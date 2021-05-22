@@ -242,7 +242,7 @@ var ExtensionView = GObject.registerClass({
         return new Promise((resolve, _reject) => {
             const dialog = new Gtk.MessageDialog({
                 text: _('Uninstall Extension'),
-                secondary_text: _('Uninstall “%s”?').format(this.info.name),
+                secondary_text: _('Uninstall “%s”?').format(this.extension.name),
                 modal: true,
                 transient_for: this.get_root(),
             });
@@ -262,24 +262,24 @@ var ExtensionView = GObject.registerClass({
 
     async _onInstallActivated() {
         try {
-            await this._manager.installRemoteExtension(this.info.uuid);
+            await this._manager.installRemoteExtension(this.uuid);
         } catch (e) {
-            logError(e, `Installing '${this.info.uuid}'`);
+            logError(e, `Installing '${this.uuid}'`);
         }
     }
 
     async _onUninstallActivated() {
         try {
             if (await this._confirmUninstall())
-                await this._manager.uninstallExtension(this.info.uuid);
+                await this._manager.uninstallExtension(this.uuid);
         } catch (e) {
-            logError(e, `Uninstalling '${this.info.uuid}'`);
+            logError(e, `Uninstalling '${this.uuid}'`);
         }
     }
 
     async _onPrefsActivated() {
         try {
-            await this._manager.launchExtensionPrefs(this.info.uuid);
+            await this._manager.launchExtensionPrefs(this.uuid);
         } catch (e) {
             logError(e);
         }
