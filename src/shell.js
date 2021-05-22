@@ -25,12 +25,19 @@ var ExtensionType = {
  * @enum {string}
  */
 var ExtensionState = {
+    /** The extension is enabled */
     ENABLED: 1,
+    /** The extension is disabled */
     DISABLED: 2,
+    /** The extension encountered an error */
     ERROR: 3,
+    /** The extension is out of date */
     OUT_OF_DATE: 4,
+    /** The extension is downloading */
     DOWNLOADING: 5,
+    /** The extension is initialzed */
     INITIALIZED: 6,
+    /** The extension is not installed */
     UNINSTALLED: 99,
 };
 
@@ -235,7 +242,7 @@ var ExtensionManager = GObject.registerClass({
                 if (extension === undefined) {
                     extension = new Extension(properties);
 
-                    this._extensions.set(uuid, extension);
+                    this._extensions.set(extension.uuid, extension);
                     this.emit('extension-added', extension.uuid, extension);
                 } else {
                     extension.update(properties);
@@ -315,8 +322,6 @@ var ExtensionManager = GObject.registerClass({
 
     _onSignal(proxy, senderName, signalName, parameters) {
         const unpacked = parameters.recursiveUnpack();
-
-        // log(`${signalName}: ${JSON.stringify(unpacked, null, 2)}`);
 
         if (signalName === 'ExtensionStateChanged') {
             const [uuid, properties] = unpacked;
