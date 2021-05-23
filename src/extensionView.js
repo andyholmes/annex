@@ -423,12 +423,12 @@ var ExtensionView = GObject.registerClass({
     }
 
     _onExtensionAdded(_manager, uuid, extension) {
-        if (this.info && this.info.uuid === uuid)
+        if (this.uuid === uuid)
             this.extension = extension;
     }
 
     _onExtensionRemoved(_manager, uuid, _extension) {
-        if (this.info && this.info.uuid === uuid)
+        if (this.uuid === uuid)
             this.extension = null;
     }
 
