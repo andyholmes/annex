@@ -243,6 +243,7 @@ var InstalledView = GObject.registerClass({
     }
 
     _sort(row1, row2) {
+        // NOTE: comparing row1 => row2 for ascending sort
         return row1.name.localeCompare(row2.name);
     }
 

@@ -369,18 +369,18 @@ var Repository = GObject.registerClass({
      * @return {Promise<Gio.File>} the resulting file
      */
     _downloadExtension(uuid, parameters = {}) {
-        let path = GLib.build_filenamev([CACHEDIR, 'extensions',
+        const message = Soup.form_request_new_from_hash('GET',
+            `${EGO_DOWNLOAD_EXTENSION}${uuid}.shell-extension.zip`, parameters);
+
+        let path = GLib.build_filenamev([CACHEDIR, 'download-extension',
             `${uuid}.shell-extension.zip`]);
 
         if (parameters.version_tag !== undefined) {
-            path = GLib.build_filenamev([CACHEDIR, 'extensions',
-                parameters.version_tag, `${uuid}.shell-extension.zip`]);
+            path = GLib.build_filenamev([CACHEDIR, 'download-extension',
+                `${uuid}.${parameters.version_tag}.shell-extension.zip`]);
         }
 
         const dest = Gio.File.new_for_path(path);
-
-        const message = Soup.form_request_new_from_hash('GET',
-            `${EGO_DOWNLOAD_EXTENSION}${uuid}.shell-extension.zip`, parameters);
 
         return this._requestFile(message, dest);
     }
@@ -392,6 +392,16 @@ var Repository = GObject.registerClass({
         return this._requestJson(message);
     }
 
+    /**
+     * Query EGO for extensions matching @parameters.
+     *
+     * @param {Object} parameters - A dictionary of search parameters
+     * @param {string} parameters.search - The search query
+     * @param {string} parameters.sort - The sort type
+     * @param {string} parameters.page - The page number
+     * @param {string} parameters.shell_version - The GNOME Shell version
+     * @return {Object} extension metadata
+     */
     _extensionQuery(parameters) {
         const message = Soup.form_request_new_from_hash('GET',
             EGO_EXTENSION_QUERY, parameters);
@@ -436,7 +446,7 @@ var Repository = GObject.registerClass({
      * @return {Gio.File} a locally cached remote file
      */
     async lookupExtensionTag(uuid, tag) {
-        const file = this._getFile(`/extensions/${tag}/${uuid}.shell-extension.zip`);
+        const file = this._getFile(`/download-extension/${uuid}.${tag}.shell-extension.zip`);
 
         if (!file.query_exists(null)) {
             try {
