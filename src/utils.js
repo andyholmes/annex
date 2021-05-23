@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // SPDX-FileCopyrightText: 2021 Andy Holmes <andrew.g.r.holmes@gmail.com>
 
-/* exported initLogging */
+/* exported initLogging, execCheck, execCommunicate */
 
 const {Gio, GLib} = imports.gi;
 
@@ -80,7 +80,7 @@ function execCheck(argv, cancellable = null) {
 
     const proc = new Gio.Subprocess({
         argv: argv,
-        flags: Gio.SubprocessFlags.NONE
+        flags: Gio.SubprocessFlags.NONE,
     });
     proc.init(cancellable);
 
@@ -88,14 +88,14 @@ function execCheck(argv, cancellable = null) {
         cancelId = cancellable.connect(() => proc.force_exit());
 
     return new Promise((resolve, reject) => {
-        proc.wait_check_async(null, (proc, res) => {
+        proc.wait_check_async(null, (_proc, res) => {
             try {
                 if (!proc.wait_check_finish(res)) {
                     const status = proc.get_exit_status();
 
                     throw new Gio.IOErrorEnum({
                         code: Gio.io_error_from_errno(status),
-                        message: GLib.strerror(status)
+                        message: GLib.strerror(status),
                     });
                 }
 
@@ -125,23 +125,20 @@ function execCheck(argv, cancellable = null) {
  */
 function execCommunicate(argv, input = null, cancellable = null) {
     let cancelId = 0;
-    let flags = (Gio.SubprocessFlags.STDOUT_PIPE |
-                 Gio.SubprocessFlags.STDERR_PIPE);
+    let flags = Gio.SubprocessFlags.STDOUT_PIPE |
+        Gio.SubprocessFlags.STDERR_PIPE;
 
     if (input !== null)
         flags |= Gio.SubprocessFlags.STDIN_PIPE;
 
-    const proc = new Gio.Subprocess({
-        argv: argv,
-        flags: flags
-    });
+    const proc = new Gio.Subprocess({argv, flags});
     proc.init(cancellable);
 
     if (cancellable instanceof Gio.Cancellable)
         cancelId = cancellable.connect(() => proc.force_exit());
 
     return new Promise((resolve, reject) => {
-        proc.communicate_utf8_async(input, null, (proc, res) => {
+        proc.communicate_utf8_async(input, null, (_proc, res) => {
             try {
                 const [, stdout, stderr] = proc.communicate_utf8_finish(res);
                 const status = proc.get_exit_status();
@@ -149,7 +146,7 @@ function execCommunicate(argv, input = null, cancellable = null) {
                 if (status !== 0) {
                     throw new Gio.IOErrorEnum({
                         code: Gio.io_error_from_errno(status),
-                        message: stderr ? stderr.trim() : GLib.strerror(status)
+                        message: stderr ? stderr.trim() : GLib.strerror(status),
                     });
                 }
 
