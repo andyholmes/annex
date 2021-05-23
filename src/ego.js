@@ -152,15 +152,15 @@ var ExtensionInfo = GObject.registerClass({
         const repository = Repository.getDefault();
 
         if (properties.icon) {
-            repository.requestFile(properties.icon).then(file => {
+            repository.lookupFile(properties.icon).then(file => {
                 this.icon = new Gio.FileIcon({file});
-            }).catch(logError);
+            });
         }
 
         if (properties.screenshot) {
-            repository.requestFile(properties.screenshot).then(file => {
+            repository.lookupFile(properties.screenshot).then(file => {
                 this.screenshot = file;
-            }).catch(logError);
+            });
         }
     }
 });
@@ -226,16 +226,18 @@ var Repository = GObject.registerClass({
         }
     }
 
-    _getFile(uri) {
-        if (!this._files.has(uri)) {
-            const name = GLib.path_get_basename(uri);
-            const path = GLib.build_filenamev([CACHEDIR, name]);
-            const file = Gio.File.new_for_path(path);
+    _getFile(path) {
+        let file = this._files.get(path);
 
-            this._files.set(uri, file);
+        if (file === undefined) {
+            const fileName = GLib.path_get_basename(path);
+            const filePath = GLib.build_filenamev([CACHEDIR, fileName]);
+            file = Gio.File.new_for_path(filePath);
+
+            this._files.set(path, file);
         }
 
-        return this._files.get(uri);
+        return file;
     }
 
     _requestBytes(message) {
@@ -325,24 +327,6 @@ var Repository = GObject.registerClass({
         });
     }
 
-    /**
-     * Send a request for a remote file. The result will be cached locally and
-     * a GFile for the local copy will be returned.
-     *
-     * @param {string} path - The path of the remote resource
-     * @return {Gio.File} a remote file
-     */
-    async requestFile(path) {
-        const file = this._getFile(path);
-
-        if (!file.query_exists(null)) {
-            const message = Soup.Message.new('GET', `${BASE_URI}${path}`);
-            await this._requestFile(message, file);
-        }
-
-        return file;
-    }
-
     _extensionInfo(uuid) {
         const message = Soup.form_request_new_from_hash('GET',
             EGO_EXTENSION_INFO, {uuid});
@@ -380,6 +364,28 @@ var Repository = GObject.registerClass({
         }
 
         return extension || null;
+    }
+
+    /**
+     * Send a request for a remote file at @path. The result will be cached
+     * locally and a GFile for the local copy will be returned.
+     *
+     * @param {string} path - The path of the remote resource
+     * @return {Gio.File} a remote file
+     */
+    async lookupFile(path) {
+        const file = this._getFile(path);
+
+        if (!file.query_exists(null)) {
+            try {
+                const message = Soup.Message.new('GET', `${BASE_URI}${path}`);
+                await this._requestFile(message, file);
+            } catch (e) {
+                warning(e);
+            }
+        }
+
+        return file;
     }
 
     /**
