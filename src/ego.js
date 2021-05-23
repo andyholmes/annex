@@ -230,8 +230,7 @@ var Repository = GObject.registerClass({
         let file = this._files.get(path);
 
         if (file === undefined) {
-            const fileName = GLib.path_get_basename(path);
-            const filePath = GLib.build_filenamev([CACHEDIR, fileName]);
+            const filePath = GLib.build_filenamev([CACHEDIR, path]);
             file = Gio.File.new_for_path(filePath);
 
             this._files.set(path, file);
@@ -258,6 +257,14 @@ var Repository = GObject.registerClass({
     }
 
     async _requestFile(message, dest, cancellable = null) {
+        try {
+            const directory = dest.get_parent();
+            directory.make_directory_with_parents(cancellable);
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.EXISTS))
+                throw e;
+        }
+
         const sendTask = new Promise((resolve, reject) => {
             this._session.send_async(
                 message,
