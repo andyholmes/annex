@@ -231,6 +231,9 @@ var InstalledView = GObject.registerClass({
 
         if (widget === this._userList && dir === Gtk.DirectionType.DOWN) {
             child = this._systemList.get_first_child();
+
+            if (child === this._systemPlaceholder)
+                child = child.get_next_sibling();
         } else if (widget === this._systemList && dir === Gtk.DirectionType.UP) {
             child = this._userList.get_last_child();
 

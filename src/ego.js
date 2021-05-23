@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // SPDX-FileCopyrightText: 2021 Andy Holmes <andrew.g.r.holmes@gmail.com>
 
-/* exported Repository, SearchResults */
+/* exported Repository, SearchResults, parseVersionMap */
 
 const {GLib, GObject, Gio, Soup} = imports.gi;
 
@@ -372,9 +372,10 @@ var Repository = GObject.registerClass({
         let path = GLib.build_filenamev([CACHEDIR, 'extensions',
             `${uuid}.shell-extension.zip`]);
 
-        if (parameters.version_tag !== undefined)
+        if (parameters.version_tag !== undefined) {
             path = GLib.build_filenamev([CACHEDIR, 'extensions',
                 parameters.version_tag, `${uuid}.shell-extension.zip`]);
+        }
 
         const dest = Gio.File.new_for_path(path);
 
@@ -490,8 +491,6 @@ var Repository = GObject.registerClass({
             extensions: [],
             total: 0,
             numpages: 1,
-            parameters: parameters,
-            error: null,
         };
 
         try {
@@ -513,6 +512,7 @@ var Repository = GObject.registerClass({
         } catch (e) {
             // Silence errors
             results.error = e;
+            results.parameters = parameters;
         }
 
         return results;
