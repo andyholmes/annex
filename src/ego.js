@@ -374,11 +374,14 @@ var Repository = GObject.registerClass({
     }
 
     /**
-     * Send a request for a remote file at @path. The result will be cached
-     * locally and a GFile for the local copy will be returned.
+     * Send a request for a remote file at @path. If successful the result will
+     * be cached locally.
+     *
+     * A GFile for the local copy will always be returned, but may not point to
+     * an existing file if the operation fails.
      *
      * @param {string} path - The path of the remote resource
-     * @return {Gio.File} a remote file
+     * @return {Gio.File} a locally cached remote file
      */
     async lookupFile(path) {
         const file = this._getFile(path);
