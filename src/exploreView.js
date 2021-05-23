@@ -53,17 +53,11 @@ const ExtensionViewRow = GObject.registerClass({
             GObject.BindingFlags.SYNC_CREATE);
         info.bind_property('name', this._nameLabel, 'label',
             GObject.BindingFlags.SYNC_CREATE);
-        this._descriptionLabel.label = info.description.split('\n')[0];
+        info.bind_property('description', this._descriptionLabel, 'label',
+            GObject.BindingFlags.SYNC_CREATE);
 
         this._info = info;
         this.notify('info');
-    }
-
-    get description() {
-        if (this.info === null)
-            return null;
-
-        return this.info.description;
     }
 
     get name() {
@@ -126,13 +120,6 @@ const ExtensionViewTile = GObject.registerClass({
 
         this._info = info;
         this.notify('info');
-    }
-
-    get description() {
-        if (this.info === null)
-            return null;
-
-        return this.info.description;
     }
 
     get name() {

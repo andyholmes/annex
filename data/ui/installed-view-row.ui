@@ -41,6 +41,7 @@
           <object class="GtkLabel" id="descriptionLabel">
             <property name="ellipsize">end</property>
             <property name="hexpand">1</property>
+            <property name="single-line-mode">1</property>
             <property name="vexpand">1</property>
             <property name="valign">center</property>
             <property name="xalign">0</property>
@@ -63,22 +64,35 @@
               <property name="row-span">2</property>
             </layout>
             <child>
+              <object class="GtkImage" id="updateImage">
+                <property name="icon-name">software-update-available-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Update Available</property>
+                <property name="valign">center</property>
+                <property name="pixel-size">24</property>
+                <property name="visible">0</property>
+                <style>
+                  <class name="dim-label"/>
+                </style>
+              </object>
+            </child>
+            <child>
+              <object class="GtkImage" id="errorImage">
+                <property name="icon-name">dialog-error-symbolic</property>
+                <property name="valign">center</property>
+                <property name="pixel-size">24</property>
+                <property name="visible">0</property>
+                <style>
+                  <class name="dim-label"/>
+                </style>
+              </object>
+            </child>
+            <child>
               <object class="GtkSwitch" id="enabledSwitch">
                 <property name="valign">center</property>
                 <signal name="state-set"
                         handler="_onStateSet"
                         object="AnnexInstalledViewRow"
                         swapped="no"/>
-              </object>
-            </child>
-            <child>
-              <object class="GtkImage" id="errorImage">
-                <property name="valign">center</property>
-                <property name="visible"
-                          bind-source="enabledSwitch"
-                          bind-property="visible"
-                          bind-flags="sync-create|invert-boolean"/>
-                <property name="icon-name">dialog-error</property>
               </object>
             </child>
             <child>

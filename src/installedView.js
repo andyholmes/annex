@@ -18,6 +18,8 @@ const InstalledViewRow = GObject.registerClass({
         'nameLabel',
         'descriptionLabel',
         'enabledSwitch',
+        'errorImage',
+        'updateImage',
     ],
     Properties: {
         'extension': GObject.ParamSpec.object(
@@ -31,7 +33,7 @@ const InstalledViewRow = GObject.registerClass({
             'info',
             'Extension Info',
             'The extension info object',
-            GObject.ParamFlags.READWRITE,
+            GObject.ParamFlags.READABLE,
             Ego.ExtensionInfo.$gtype
         ),
     },
@@ -53,9 +55,12 @@ const InstalledViewRow = GObject.registerClass({
         if (this.extension === extension)
             return;
 
-        this._nameLabel.label = extension.name;
-        this._descriptionLabel.label = extension.description.split('\n')[0];
-
+        extension.bind_property('name', this._nameLabel, 'label',
+            GObject.BindingFlags.SYNC_CREATE);
+        extension.bind_property('description', this._descriptionLabel, 'label',
+            GObject.BindingFlags.SYNC_CREATE);
+        extension.bind_property('has-update', this._updateImage, 'visible',
+            GObject.BindingFlags.SYNC_CREATE);
         extension.connect('notify::state',
             this._onStateChanged.bind(this));
 
@@ -71,26 +76,6 @@ const InstalledViewRow = GObject.registerClass({
             this._info = null;
 
         return this._info;
-    }
-
-    set info(info) {
-        if (this.info === info)
-            return;
-
-        if (info && info.icon)
-            this._iconImage.gicon = info.icon;
-        else
-            this._iconImage.gicon = new Gio.ThemedIcon({name: 'ego-plugin'});
-
-        this._info = info;
-        this.notify('info');
-    }
-
-    get description() {
-        if (this.extension === null)
-            return null;
-
-        return this.extension.description;
     }
 
     get name() {
@@ -112,17 +97,21 @@ const InstalledViewRow = GObject.registerClass({
             case Shell.ExtensionState.ENABLED:
                 this._enabledSwitch.state = true;
                 this._enabledSwitch.sensitive = true;
+                this._errorImage.visible = false;
                 break;
 
             case Shell.ExtensionState.DISABLED:
                 this._enabledSwitch.state = false;
                 this._enabledSwitch.sensitive = true;
+                this._errorImage.visible = false;
                 break;
 
             case Shell.ExtensionState.OUT_OF_DATE:
             case Shell.ExtensionState.ERROR:
                 this._enabledSwitch.sensitive = false;
-                this._enabledSwitch.visible = false;
+                this._errorImage.icon_name = 'dialog-error-symbolic';
+                this._errorImage.tooltip_text = this.extension.error;
+                this._errorImage.visible = true;
                 break;
         }
     }
@@ -146,15 +135,20 @@ const InstalledViewRow = GObject.registerClass({
     }
 
     async _update() {
-        if (this.extension) {
-            try {
-                const repository = Ego.Repository.getDefault();
-                const info = await repository.lookupExtension(this.uuid);
+        if (this.extension && this.info === null) {
+            const repository = Ego.Repository.getDefault();
+            const info = await repository.lookupExtension(this.uuid);
 
-                if (info && info.uuid === this.uuid)
-                    this.info = info;
-            } catch (e) {
-                debug(e);
+            if (info && info.uuid === this.uuid) {
+                info.bind_property('icon', this._iconImage, 'gicon',
+                    GObject.BindingFlags.SYNC_CREATE);
+                info.bind_property('name', this._nameLabel, 'label',
+                    GObject.BindingFlags.SYNC_CREATE);
+                info.bind_property('description', this._descriptionLabel, 'label',
+                    GObject.BindingFlags.SYNC_CREATE);
+
+                this._info = info;
+                this.notify('info');
             }
         }
     }
