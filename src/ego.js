@@ -417,7 +417,7 @@ var Repository = GObject.registerClass({
                     this._extensions.set(extension.uuid, extension);
                 }
             } catch (e) {
-                // Silence errors
+                debug(e);
             }
         }
 
@@ -442,6 +442,7 @@ var Repository = GObject.registerClass({
             try {
                 await this._downloadExtension(uuid, {version_tag: `${tag}`});
             } catch (e) {
+                warning(e);
             }
         }
 
@@ -510,7 +511,7 @@ var Repository = GObject.registerClass({
                 return info;
             });
         } catch (e) {
-            // Silence errors
+            debug(e);
             results.error = e;
             results.parameters = parameters;
         }
@@ -742,6 +743,7 @@ var SearchResults = GObject.registerClass({
             this.items_changed(position, this._removed, added);
             this._removed = 0;
         } catch (e) {
+            debug(e);
             this._results[parameters.page] = e;
         }
     }

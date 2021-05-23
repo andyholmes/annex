@@ -314,7 +314,12 @@
         "_N": false,
         "ngettext": false,
         "_": "readonly",
-        "pkg": "readonly"
+        "pkg": "readonly",
+
+        "debug": "readonly",
+        "message": "readonly",
+        "warning": "readonly",
+        "critical": "readonly"
     },
     "parserOptions": {
         "ecmaVersion": 2020

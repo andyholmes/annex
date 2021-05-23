@@ -146,6 +146,8 @@ const VersionRow = GObject.registerClass({
 
             return dest;
         } catch (e) {
+            warning(e);
+
             return null;
         }
     }
@@ -403,7 +405,7 @@ var ExtensionView = GObject.registerClass({
                 if (result && result.uuid === this.uuid)
                     this.extension = result;
             } catch (e) {
-                // Silence errors
+                debug(e);
             }
         }
 
@@ -415,7 +417,7 @@ var ExtensionView = GObject.registerClass({
                 if (result && result.uuid === this.uuid)
                     this.info = result;
             } catch (e) {
-                // Silence errors
+                debug(e);
             }
         }
 

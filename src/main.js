@@ -16,9 +16,14 @@ pkg.require({
 });
 
 const {Gio, GObject, Gdk, Gtk} = imports.gi;
+
 const {AnnexWindow} = imports.window;
+const Utils = imports.utils;
 
 
+/**
+ * The primary application class for Annex.
+ */
 const Application = GObject.registerClass({
     GTypeName: 'AnnexApplication',
 }, class AnnexApplication extends Gtk.Application {
@@ -58,6 +63,8 @@ const Application = GObject.registerClass({
 
 function main(argv) {
     const application = new Application();
+
+    Utils.initLogging();
 
     return application.run(argv);
 }

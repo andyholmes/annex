@@ -128,22 +128,19 @@ const InstalledViewRow = GObject.registerClass({
     }
 
     _onStateSet(widget, state) {
+        /* Check if this is a no-op */
         const enabled = this.extension.state === Shell.ExtensionState.ENABLED;
 
         if (enabled === state)
             return false;
 
+        /* Try to toggle the extension */
         const manager = Shell.ExtensionManager.getDefault();
 
-        if (state) {
-            manager.enableExtension(this.uuid).catch(e => {
-                // Silence errors
-            });
-        } else {
-            manager.disableExtension(this.uuid).catch(e => {
-                // Silence errors
-            });
-        }
+        if (state)
+            manager.enableExtension(this.uuid).catch(warning);
+        else
+            manager.disableExtension(this.uuid).catch(warning);
 
         return true;
     }
@@ -157,7 +154,7 @@ const InstalledViewRow = GObject.registerClass({
                 if (info && info.uuid === this.uuid)
                     this.info = info;
             } catch (e) {
-                // Silence errors
+                debug(e);
             }
         }
     }
