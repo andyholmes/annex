@@ -14,7 +14,7 @@ const SECTION_LIMIT = 9;
 /**
  * An extension widget for listboxes.
  */
-const ExtensionViewRow = GObject.registerClass({
+const ExploreViewRow = GObject.registerClass({
     GTypeName: 'AnnexExploreViewRow',
     Template: 'resource:///ca/andyholmes/Annex/ui/explore-view-row.ui',
     InternalChildren: [
@@ -79,7 +79,7 @@ const ExtensionViewRow = GObject.registerClass({
 /**
  * An extension widget for flowboxes.
  */
-const ExtensionViewTile = GObject.registerClass({
+const ExploreViewTile = GObject.registerClass({
     GTypeName: 'AnnexExploreViewTile',
     Template: 'resource:///ca/andyholmes/Annex/ui/explore-view-tile.ui',
     InternalChildren: [
@@ -235,7 +235,7 @@ var ExploreView = GObject.registerClass({
      * Explore
      */
     _createTile(extension) {
-        return new ExtensionViewTile(extension);
+        return new ExploreViewTile(extension);
     }
 
     async _query(category) {
@@ -273,7 +273,7 @@ var ExploreView = GObject.registerClass({
             // Show the results or error
             if (results.extensions.length > 0) {
                 for (const extension of results.extensions) {
-                    item = new ExtensionViewTile(extension);
+                    item = new ExploreViewTile(extension);
                     this._popularResults.insert(item, -1);
                 }
 
@@ -308,7 +308,7 @@ var ExploreView = GObject.registerClass({
                 this._recentStack.visible_child_name = 'status';
             } else {
                 for (const extension of results.extensions) {
-                    item = new ExtensionViewTile(extension);
+                    item = new ExploreViewTile(extension);
                     this._recentResults.insert(item, -1);
                 }
 
@@ -328,7 +328,7 @@ var ExploreView = GObject.registerClass({
      * Search
      */
     _createRow(extension) {
-        return new ExtensionViewRow(extension);
+        return new ExploreViewRow(extension);
     }
 
     _maybeLoadMore(adjustment) {
