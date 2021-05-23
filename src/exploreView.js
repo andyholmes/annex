@@ -348,7 +348,7 @@ var ExploreView = GObject.registerClass({
         const {value, page_size, upper} = adjustment;
 
         // If there's less than two pages buffered, start loading more
-        if (upper - (value + page_size) < (2 * page_size))
+        if (upper - (value + page_size) < (3 * page_size))
             this._model.loadMore();
     }
 
