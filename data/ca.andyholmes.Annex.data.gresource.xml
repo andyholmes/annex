@@ -8,6 +8,8 @@
     <file>icons/ego-plugin.svg</file>
 
     <!-- UI -->
+    <file>ui/detailed-version-dialog.ui</file>
+    <file>ui/detailed-version-row.ui</file>
     <file>ui/explore-view.ui</file>
     <file>ui/explore-view-row.ui</file>
     <file>ui/explore-view-tile.ui</file>

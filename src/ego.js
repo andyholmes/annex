@@ -37,6 +37,30 @@ var SortType = {
 
 
 /**
+ * Takes an Ego.ExtensionInfo and returns a dictionary of version-info pairs.
+ *
+ * @param {Ego.ExtensionInfo} info - An extension info
+ * @return {Object} dictionary of releases
+ */
+function parseVersionMap(info) {
+    const versions = {};
+
+    for (const [shell, release] of Object.entries(info.shell_version_map)) {
+        if (versions[release.version] === undefined) {
+            versions[release.version] = {
+                pk: release.pk,
+                shell_versions: [],
+            };
+        }
+
+        versions[release.version].shell_versions.push(shell);
+    }
+
+    return versions;
+}
+
+
+/**
  * An object representing a search result.
  */
 var ExtensionInfo = GObject.registerClass({
@@ -334,6 +358,32 @@ var Repository = GObject.registerClass({
         });
     }
 
+    /**
+     * Download an extension ZIP from EGO.
+     *
+     * @param {string} uuid - An extension UUID
+     * @param {Object} [parameters] - Selection parameters
+     * @param {string} [parameters.disable_version_validation] - ??? (eg. 'true')
+     * @param {string} [parameters.version_tag] - Release PK (eg. 23066)
+     * @param {string} [parameters.shell_version] - Shell version (eg. '40.0')
+     * @return {Promise<Gio.File>} the resulting file
+     */
+    _downloadExtension(uuid, parameters = {}) {
+        let path = GLib.build_filenamev([CACHEDIR, 'extensions',
+            `${uuid}.shell-extension.zip`]);
+
+        if (parameters.version_tag !== undefined)
+            path = GLib.build_filenamev([CACHEDIR, 'extensions',
+                parameters.version_tag, `${uuid}.shell-extension.zip`]);
+
+        const dest = Gio.File.new_for_path(path);
+
+        const message = Soup.form_request_new_from_hash('GET',
+            `${EGO_DOWNLOAD_EXTENSION}${uuid}.shell-extension.zip`, parameters);
+
+        return this._requestFile(message, dest);
+    }
+
     _extensionInfo(uuid) {
         const message = Soup.form_request_new_from_hash('GET',
             EGO_EXTENSION_INFO, {uuid});
@@ -371,6 +421,30 @@ var Repository = GObject.registerClass({
         }
 
         return extension || null;
+    }
+
+    /**
+     * Get the extension ZIP for version @tag of extension @uuid. If downloaded
+     * successfully the file will be cached locally.
+     *
+     * A Gio.File for the local copy will always be returned, but may not point
+     * to an existing file if the download operation fails.
+     *
+     * @param {string} uuid - The UUID of the extension
+     * @param {string} tag - The release PK
+     * @return {Gio.File} a locally cached remote file
+     */
+    async lookupExtensionTag(uuid, tag) {
+        const file = this._getFile(`/extensions/${tag}/${uuid}.shell-extension.zip`);
+
+        if (!file.query_exists(null)) {
+            try {
+                await this._downloadExtension(uuid, {version_tag: `${tag}`});
+            } catch (e) {
+            }
+        }
+
+        return file;
     }
 
     /**

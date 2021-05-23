@@ -190,6 +190,30 @@
                         <property name="selection-mode">none</property>
                         <property name="show-separators">1</property>
                         <child>
+                          <object class="GtkListBoxRow" id="versionsRow">
+                            <property name="action-name">view.versions</property>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="margin-start">12</property>
+                                <property name="margin-end">12</property>
+                                <property name="margin-top">12</property>
+                                <property name="margin-bottom">12</property>
+                                <property name="spacing">12</property>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="icon-name">package-x-generic-symbolic</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="label" translatable="yes">Versions</property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
                           <object class="GtkListBoxRow" id="websiteRow">
                             <property name="action-name">view.website</property>
                             <child>
@@ -207,30 +231,6 @@
                                 <child>
                                   <object class="GtkLabel">
                                     <property name="label" translatable="yes">Website</property>
-                                  </object>
-                                </child>
-                              </object>
-                            </child>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkListBoxRow" id="versionsRow">
-                            <property name="action-name">view.versions</property>
-                            <child>
-                              <object class="GtkBox">
-                                <property name="margin-start">12</property>
-                                <property name="margin-end">12</property>
-                                <property name="margin-top">12</property>
-                                <property name="margin-bottom">12</property>
-                                <property name="spacing">12</property>
-                                <child>
-                                  <object class="GtkImage">
-                                    <property name="icon-name">dialog-question-symbolic</property>
-                                  </object>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="label" translatable="yes">Versions</property>
                                   </object>
                                 </child>
                               </object>

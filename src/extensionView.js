@@ -3,7 +3,7 @@
 
 /* exported ExtensionView */
 
-const {Gio, GObject, Gtk} = imports.gi;
+const {Gio, GLib, GObject, Gtk} = imports.gi;
 
 const Ego = imports.ego;
 const Shell = imports.shell;
@@ -12,6 +12,191 @@ const Shell = imports.shell;
 function _createLink(text, url) {
     return `<a href="${url}">${text}</a>`;
 }
+
+/**
+ * An extension widget for listboxes.
+ */
+const VersionRow = GObject.registerClass({
+    GTypeName: 'AnnexDetailedVersionRow',
+    Template: 'resource:///ca/andyholmes/Annex/ui/detailed-version-row.ui',
+    InternalChildren: [
+        'downloadButton',
+        'versionLabel',
+        'shellVersionLabel',
+    ],
+    Properties: {
+        'info': GObject.ParamSpec.object(
+            'info',
+            'Result',
+            'The search info object',
+            GObject.ParamFlags.READWRITE,
+            Ego.ExtensionInfo.$gtype
+        ),
+    },
+}, class AnnexDetailedVersionRow extends Gtk.ListBoxRow {
+    _init(params = {}) {
+        super._init(params);
+
+        const actionGroup = new Gio.SimpleActionGroup();
+
+        const downloadAction = new Gio.SimpleAction({
+            name: 'download',
+            parameter_type: null,
+        });
+        downloadAction.connect('activate',
+            this._onDownloadActivated.bind(this));
+        actionGroup.add_action(downloadAction);
+
+        this.insert_action_group('version', actionGroup);
+    }
+
+    get version() {
+        if (this._version === undefined)
+            this._version = 1;
+
+        return this._version;
+    }
+
+    set version(version) {
+        if (this.version === version)
+            return;
+
+        this._version = version;
+        this._versionLabel.label = `v${version}`;
+    }
+
+    get shell_versions() {
+        if (this._shell_versions === undefined)
+            this._shell_versions = [];
+
+        return this._shell_versions;
+    }
+
+    set shell_versions(versions) {
+        if (this.shell_versions === versions)
+            return;
+
+        this._shell_versions = versions;
+        this._shellVersionLabel.label = this.shell_versions.sort().join(', ');
+    }
+
+    get version_tag() {
+        if (this._version_tag === undefined)
+            this._version_tag = 0;
+
+        return this._version_tag;
+    }
+
+    set version_tag(tag) {
+        if (this.version_tag === tag)
+            return;
+
+        this._version_tag = tag;
+    }
+
+    async _onDownloadActivated() {
+        try {
+            /* Query the user */
+            const dialog = new Gtk.FileChooserNative({
+                accept_label: _('Save'),
+                action: Gtk.FileChooserAction.SAVE,
+                cancel_label: _('Cancel'),
+                modal: true,
+                title: _('Download v%d').format(this.version),
+                transient_for: this.get_root(),
+            });
+
+            const dest = await new Promise((resolve, reject) => {
+                dialog.connect('response', (_dialog, response_id) => {
+                    if (response_id === Gtk.ResponseType.ACCEPT) {
+                        resolve(dialog.get_file());
+                    } else {
+                        const error = new Gio.IOErrorEnum({
+                            code: Gio.IOErrorEnum.CANCELLED,
+                            message: _('Operation cancelled'),
+                        });
+
+                        reject(error);
+                    }
+                });
+
+                dialog.show();
+            });
+
+            /* Query EGO and cache the result */
+            const repository = Ego.Repository.getDefault();
+
+            const file = await repository.lookupExtensionTag(this.uuid,
+                this.version_tag);
+
+            /* Copy to the destination */
+            await new Promise((resolve, reject) => {
+                file.copy_async(
+                    dest,
+                    Gio.FileCopyFlags.OVERWRITE,
+                    GLib.PRIORITY_DEFAULT, null, null, (_file, res) => {
+                        try {
+                            resolve(_file.copy_finish(res));
+                        } catch (e) {
+                            reject(e);
+                        }
+                    }
+                );
+            });
+
+            return dest;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    setInfo(info, version, versionInfo) {
+        this.uuid = info.uuid;
+        this.shell_versions = versionInfo.shell_versions;
+        this.version = version;
+        this.version_tag = versionInfo.pk;
+    }
+});
+
+
+/**
+ * A dialog for an extension's available versions.
+ */
+var VersionDialog = GObject.registerClass({
+    GTypeName: 'AnnexDetailedVersionDialog',
+    Template: 'resource:///ca/andyholmes/Annex/ui/detailed-version-dialog.ui',
+    InternalChildren: [
+        'previousButton',
+        'versionList',
+    ],
+}, class AnnexDetailedVersionDialog extends Gtk.ApplicationWindow {
+    _init(params = {}) {
+        super._init(params);
+
+        this._versionList.set_sort_func(this._sort);
+    }
+
+    _sort(row1, row2) {
+        // NOTE: comparing row2 => row1 for descending sort
+        return row2.version.localeCompare(row1.version);
+    }
+
+    setInfo(info) {
+        let row;
+
+        while ((row = this._versionList.get_first_child()))
+            this._versionList.remove(row);
+
+        const versions = Ego.parseVersionMap(info);
+
+        for (const [version, versionInfo] of Object.entries(versions)) {
+            row = new VersionRow();
+            row.setInfo(info, version, versionInfo);
+
+            this._versionList.append(row);
+        }
+    }
+});
 
 
 /**
@@ -95,6 +280,14 @@ var ExtensionView = GObject.registerClass({
         this._prefsAction.connect('activate',
             this._onPrefsActivated.bind(this));
         actionGroup.add_action(this._prefsAction);
+
+        this._versionsAction = new Gio.SimpleAction({
+            name: 'versions',
+            enabled: true,
+        });
+        this._versionsAction.connect('activate',
+            this._onVersionsActivated.bind(this));
+        actionGroup.add_action(this._versionsAction);
 
         this._websiteAction = new Gio.SimpleAction({
             name: 'website',
@@ -193,6 +386,7 @@ var ExtensionView = GObject.registerClass({
         this._uninstallAction.enabled = this.extension !== null &&
             this.extension.type === Shell.ExtensionType.USER;
         this._prefsAction.enabled = this.extension && this.extension.has_prefs;
+        this._versionsAction.enabled = this.info !== null;
     }
 
     async _update() {
@@ -283,6 +477,19 @@ var ExtensionView = GObject.registerClass({
         } catch (e) {
             logError(e);
         }
+    }
+
+    _onVersionsActivated() {
+        if (this.info === null)
+            return;
+
+        const dialog = new VersionDialog({
+            modal: true,
+            title: this.info.name,
+            transient_for: this.get_root(),
+        });
+        dialog.setInfo(this.info);
+        dialog.present();
     }
 
     _onWebsiteActivated() {
