@@ -17,8 +17,8 @@ function _createLink(text, url) {
  * An extension widget for listboxes.
  */
 const VersionRow = GObject.registerClass({
-    GTypeName: 'AnnexDetailedVersionRow',
-    Template: 'resource:///ca/andyholmes/Annex/ui/detailed-version-row.ui',
+    GTypeName: 'AnnexExtensionVersionRow',
+    Template: 'resource:///ca/andyholmes/Annex/ui/extension-version-row.ui',
     InternalChildren: [
         'downloadButton',
         'versionLabel',
@@ -33,7 +33,7 @@ const VersionRow = GObject.registerClass({
             Ego.ExtensionInfo.$gtype
         ),
     },
-}, class AnnexDetailedVersionRow extends Gtk.ListBoxRow {
+}, class AnnexExtensionVersionRow extends Gtk.ListBoxRow {
     _init(params = {}) {
         super._init(params);
 
@@ -165,13 +165,13 @@ const VersionRow = GObject.registerClass({
  * A dialog for an extension's available versions.
  */
 var VersionDialog = GObject.registerClass({
-    GTypeName: 'AnnexDetailedVersionDialog',
-    Template: 'resource:///ca/andyholmes/Annex/ui/detailed-version-dialog.ui',
+    GTypeName: 'AnnexExtensionVersionDialog',
+    Template: 'resource:///ca/andyholmes/Annex/ui/extension-version-dialog.ui',
     InternalChildren: [
         'previousButton',
         'versionList',
     ],
-}, class AnnexDetailedVersionDialog extends Gtk.ApplicationWindow {
+}, class AnnexExtensionVersionDialog extends Gtk.ApplicationWindow {
     _init(params = {}) {
         super._init(params);
 

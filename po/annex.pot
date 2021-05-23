@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: annex\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-05-21 14:33-0700\n"
+"POT-Creation-Date: 2021-05-23 14:51-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -55,7 +55,7 @@ msgstr ""
 
 #. Display loading and empty the results box
 #: data/ui/explore-view.ui:120 data/ui/explore-view.ui:216
-#: data/ui/explore-view.ui:288 src/exploreView.js:290 src/exploreView.js:322
+#: data/ui/explore-view.ui:291 src/exploreView.js:264 src/exploreView.js:296
 msgid "Loading…"
 msgstr ""
 
@@ -80,19 +80,23 @@ msgid "More Information"
 msgstr ""
 
 #: data/ui/extension-view.ui:209
-msgid "Website"
-msgstr ""
-
-#: data/ui/extension-view.ui:233
 msgid "Versions"
 msgstr ""
 
-#: data/ui/installed-view.ui:25 data/ui/window.ui:83
+#: data/ui/extension-view.ui:233
+msgid "Website"
+msgstr ""
+
+#: data/ui/installed-view.ui:28 data/ui/window.ui:83
 msgid "Installed"
 msgstr ""
 
-#: data/ui/installed-view.ui:69
+#: data/ui/installed-view.ui:76
 msgid "System"
+msgstr ""
+
+#: data/ui/installed-view-row.ui:69
+msgid "Update Available"
 msgstr ""
 
 #: data/ui/window.ui:60
@@ -107,24 +111,37 @@ msgstr ""
 msgid "About Annex"
 msgstr ""
 
-#: src/exploreView.js:309 src/exploreView.js:333
+#: src/exploreView.js:283 src/exploreView.js:307
 msgid "No results"
 msgstr ""
 
-#: src/extensionView.js:244
+#: src/extensionView.js:101
+msgid "Save"
+msgstr ""
+
+#: src/extensionView.js:103 src/extensionView.js:446
+msgid "Cancel"
+msgstr ""
+
+#: src/extensionView.js:105
+#, javascript-format
+msgid "Download v%d"
+msgstr ""
+
+#: src/extensionView.js:116
+msgid "Operation cancelled"
+msgstr ""
+
+#: src/extensionView.js:440
 msgid "Uninstall Extension"
 msgstr ""
 
-#: src/extensionView.js:245
+#: src/extensionView.js:441
 #, javascript-format
 msgid "Uninstall “%s”?"
 msgstr ""
 
-#: src/extensionView.js:250
-msgid "Cancel"
-msgstr ""
-
-#: src/extensionView.js:251
+#: src/extensionView.js:447
 msgid "Uninstall"
 msgstr ""
 

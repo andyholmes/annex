@@ -8,11 +8,11 @@
     <file>icons/ego-plugin.svg</file>
 
     <!-- UI -->
-    <file>ui/detailed-version-dialog.ui</file>
-    <file>ui/detailed-version-row.ui</file>
     <file>ui/explore-view.ui</file>
     <file>ui/explore-view-row.ui</file>
     <file>ui/explore-view-tile.ui</file>
+    <file>ui/extension-version-dialog.ui</file>
+    <file>ui/extension-version-row.ui</file>
     <file>ui/extension-view.ui</file>
     <file>ui/installed-view.ui</file>
     <file>ui/installed-view-row.ui</file>

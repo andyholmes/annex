@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <template class="AnnexDetailedVersionRow" parent="GtkListBoxRow">
+  <template class="AnnexExtensionVersionRow" parent="GtkListBoxRow">
     <property name="activatable">0</property>
     <property name="selectable">0</property>
     <child>

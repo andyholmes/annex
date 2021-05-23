@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <template class="AnnexDetailedVersionDialog" parent="GtkApplicationWindow">
+  <template class="AnnexExtensionVersionDialog" parent="GtkApplicationWindow">
     <property name="width-request">360</property>
     <child type="titlebar">
       <object class="GtkHeaderBar" id="headerBar">
