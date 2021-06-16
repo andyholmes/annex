@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <template class="AnnexExtensionVersionRow" parent="GtkListBoxRow">
-    <property name="activatable">0</property>
     <property name="selectable">0</property>
     <child>
       <object class="GtkBox">
@@ -23,6 +22,7 @@
         </child>
         <child>
           <object class="GtkLabel" id="shellVersionLabel">
+            <property name="ellipsize">middle</property>
             <property name="vexpand">1</property>
             <property name="valign">center</property>
             <property name="xalign">0</property>
@@ -32,14 +32,10 @@
           </object>
         </child>
         <child>
-          <object class="GtkButton" id="downloadButton">
-            <property name="action-name">version.download</property>
-            <property name="icon-name">document-save-symbolic</property>
-            <property name="tooltip-text" translatable="yes">Download</property>
+          <object class="GtkImage" id="statusIcon">
+            <property name="icon-name">object-select-symbolic</property>
+            <property name="tooltip-text" translatable="yes">Installed</property>
             <property name="valign">center</property>
-            <style>
-              <class name="circular"/>
-            </style>
           </object>
         </child>
       </object>

@@ -3,26 +3,60 @@
 
 /* exported ExtensionView */
 
-const {Gio, GLib, GObject, Gtk} = imports.gi;
+const {Gio, GObject, Gtk} = imports.gi;
 
 const Ego = imports.ego;
 const Shell = imports.shell;
+const ExtensionInstaller = imports.extensionInstaller;
 
 
 function _createLink(text, url) {
     return `<a href="${url}">${text}</a>`;
 }
 
+
 /**
- * An extension widget for listboxes.
+ * A simple dialog, tailored for displaying screenshots.
+ */
+const Screenshot = GObject.registerClass({
+    GTypeName: 'AnnexExtensionViewScreenshot',
+    Template: 'resource:///ca/andyholmes/Annex/ui/extension-view-screenshot.ui',
+    InternalChildren: [
+        'screenshotPicture',
+    ],
+    Properties: {
+        'file': GObject.ParamSpec.object(
+            'file',
+            'File',
+            'The screenshot file',
+            GObject.ParamFlags.READWRITE,
+            Gio.File.$gtype
+        ),
+    },
+}, class AnnexExtensionViewScreenshot extends Gtk.Window {
+    _init(params = {}) {
+        super._init(params);
+
+        this.bind_property('file', this._screenshotPicture, 'file',
+            GObject.BindingFlags.SYNC_CREATE);
+    }
+
+    _onClose() {
+        this.close();
+    }
+});
+
+
+/**
+ * A widget for extension version rows.
  */
 const VersionRow = GObject.registerClass({
     GTypeName: 'AnnexExtensionVersionRow',
     Template: 'resource:///ca/andyholmes/Annex/ui/extension-version-row.ui',
     InternalChildren: [
-        'downloadButton',
-        'versionLabel',
         'shellVersionLabel',
+        'statusIcon',
+        'versionLabel',
     ],
     Properties: {
         'info': GObject.ParamSpec.object(
@@ -34,129 +68,78 @@ const VersionRow = GObject.registerClass({
         ),
     },
 }, class AnnexExtensionVersionRow extends Gtk.ListBoxRow {
-    _init(params = {}) {
-        super._init(params);
+    get release() {
+        if (this._release === undefined)
+            this._release = null;
 
-        const actionGroup = new Gio.SimpleActionGroup();
-
-        const downloadAction = new Gio.SimpleAction({
-            name: 'download',
-            parameter_type: null,
-        });
-        downloadAction.connect('activate',
-            this._onDownloadActivated.bind(this));
-        actionGroup.add_action(downloadAction);
-
-        this.insert_action_group('version', actionGroup);
+        return this._release;
     }
 
-    get version() {
-        if (this._version === undefined)
-            this._version = 1;
+    set release(release) {
+        this._release = release;
 
-        return this._version;
-    }
+        if (this.release !== null) {
+            const {shell_version, version} = release;
 
-    set version(version) {
-        if (this.version === version)
-            return;
-
-        this._version = version;
-        this._versionLabel.label = `v${version}`;
-    }
-
-    get shell_versions() {
-        if (this._shell_versions === undefined)
-            this._shell_versions = [];
-
-        return this._shell_versions;
-    }
-
-    set shell_versions(versions) {
-        if (this.shell_versions === versions)
-            return;
-
-        this._shell_versions = versions;
-        this._shellVersionLabel.label = this.shell_versions.sort().join(', ');
-    }
-
-    get version_tag() {
-        if (this._version_tag === undefined)
-            this._version_tag = 0;
-
-        return this._version_tag;
-    }
-
-    set version_tag(tag) {
-        if (this.version_tag === tag)
-            return;
-
-        this._version_tag = tag;
-    }
-
-    async _onDownloadActivated() {
-        try {
-            /* Query the user */
-            const dialog = new Gtk.FileChooserNative({
-                accept_label: _('Save'),
-                action: Gtk.FileChooserAction.SAVE,
-                cancel_label: _('Cancel'),
-                modal: true,
-                title: _('Download v%d').format(this.version),
-                transient_for: this.get_root(),
-            });
-
-            const dest = await new Promise((resolve, reject) => {
-                dialog.connect('response', (_dialog, response_id) => {
-                    if (response_id === Gtk.ResponseType.ACCEPT) {
-                        resolve(dialog.get_file());
-                    } else {
-                        const error = new Gio.IOErrorEnum({
-                            code: Gio.IOErrorEnum.CANCELLED,
-                            message: _('Operation cancelled'),
-                        });
-
-                        reject(error);
-                    }
-                });
-
-                dialog.show();
-            });
-
-            /* Query EGO and cache the result */
-            const repository = Ego.Repository.getDefault();
-
-            const file = await repository.lookupExtensionTag(this.uuid,
-                this.version_tag);
-
-            /* Copy to the destination */
-            await new Promise((resolve, reject) => {
-                file.copy_async(
-                    dest,
-                    Gio.FileCopyFlags.OVERWRITE,
-                    GLib.PRIORITY_DEFAULT, null, null, (_file, res) => {
-                        try {
-                            resolve(_file.copy_finish(res));
-                        } catch (e) {
-                            reject(e);
-                        }
-                    }
-                );
-            });
-
-            return dest;
-        } catch (e) {
-            warning(e);
-
-            return null;
+            this._shellVersionLabel.label = shell_version.sort().join(', ');
+            this._versionLabel.label = `v${version}`;
+        } else {
+            this._shellVersionLabel.label = null;
+            this._versionLabel.label = null;
         }
     }
 
-    setInfo(info, version, versionInfo) {
-        this.uuid = info.uuid;
-        this.shell_versions = versionInfo.shell_versions;
-        this.version = version;
-        this.version_tag = versionInfo.pk;
+    get status() {
+        if (this._status === undefined)
+            this._status = Ego.UpdateType.NONE;
+
+        return this._status;
+    }
+
+    set status(status) {
+        switch (status) {
+            case Ego.UpdateType.NONE:
+                this.activatable = false;
+                this._statusIcon.icon_name = 'object-select-symbolic';
+                this._statusIcon.tooltip_text = _('Installed');
+                break;
+
+            case Ego.UpdateType.BLACKLIST:
+                this.activatable = true;
+                this._statusIcon.icon_name = 'dialog-warning-symbolic';
+                this._statusIcon.tooltip_text = _('Incompatible');
+                break;
+
+            case Ego.UpdateType.DOWNGRADE:
+                this.activatable = true;
+                this._statusIcon.icon_name = 'pan-down-symbolic';
+                this._statusIcon.tooltip_text = _('Downgrade');
+                break;
+
+            case Ego.UpdateType.NEW:
+                this.activatable = true;
+                this._statusIcon.icon_name = 'list-add-symbolic';
+                this._statusIcon.tooltip_text = _('Install');
+                break;
+
+            case Ego.UpdateType.UPGRADE:
+                this.activatable = true;
+                this._statusIcon.icon_name = 'pan-up-symbolic';
+                this._statusIcon.tooltip_text = _('Upgrade');
+                break;
+
+            default:
+                break;
+        }
+
+        this._status = status;
+    }
+
+    get version() {
+        if (this.release === null)
+            return 0;
+
+        return this.release.version;
     }
 });
 
@@ -164,157 +147,49 @@ const VersionRow = GObject.registerClass({
 /**
  * A dialog for an extension's available versions.
  */
-var VersionDialog = GObject.registerClass({
+const VersionDialog = GObject.registerClass({
     GTypeName: 'AnnexExtensionVersionDialog',
     Template: 'resource:///ca/andyholmes/Annex/ui/extension-version-dialog.ui',
     InternalChildren: [
-        'previousButton',
+        'windowTitle',
+        'windowSubtitle',
+
         'versionList',
+        'installerWidget',
+        'stack',
     ],
+    Properties: {
+        'info': GObject.ParamSpec.object(
+            'info',
+            'Result',
+            'The search info object',
+            GObject.ParamFlags.READWRITE,
+            Ego.ExtensionInfo.$gtype
+        ),
+    },
 }, class AnnexExtensionVersionDialog extends Gtk.ApplicationWindow {
     _init(params = {}) {
         super._init(params);
 
-        this._versionList.set_sort_func(this._sort);
-    }
+        this._extension = null;
 
-    _sort(row1, row2) {
-        // NOTE: comparing row2 => row1 for descending sort
-        return row2.version.localeCompare(row1.version);
-    }
-
-    setInfo(info) {
-        let row;
-
-        while ((row = this._versionList.get_first_child()))
-            this._versionList.remove(row);
-
-        const versions = Ego.parseVersionMap(info);
-
-        for (const [version, versionInfo] of Object.entries(versions)) {
-            row = new VersionRow();
-            row.setInfo(info, version, versionInfo);
-
-            this._versionList.append(row);
-        }
-    }
-});
-
-
-/**
- * A widget for viewing the details of an extension.
- */
-var ExtensionView = GObject.registerClass({
-    GTypeName: 'AnnexExtensionView',
-    Template: 'resource:///ca/andyholmes/Annex/ui/extension-view.ui',
-    InternalChildren: [
-        'iconImage',
-        'nameLabel',
-        'creatorLabel',
-        'descriptionLabel',
-        'screenshotBox',
-        'screenshotPicture',
-
-        'installButton',
-        'uninstallButton',
-        'prefsButton',
-    ],
-    Properties: {
-        'extension': GObject.ParamSpec.object(
-            'extension',
-            'Extension',
-            'Extension Object',
-            GObject.ParamFlags.READWRITE,
-            Shell.Extension.$gtype
-        ),
-        'info': GObject.ParamSpec.object(
-            'info',
-            'Info',
-            'Extension Info',
-            GObject.ParamFlags.READWRITE,
-            Ego.ExtensionInfo.$gtype
-        ),
-        'uuid': GObject.ParamSpec.string(
-            'uuid',
-            'UUID',
-            'Extension UUID',
-            GObject.ParamFlags.READWRITE,
-            null
-        ),
-    },
-}, class AnnexExtensionView extends Gtk.Box {
-    _init(params = {}) {
-        super._init(params);
-
-        // Manager
-        this._manager = Shell.ExtensionManager.getDefault();
-
-        this._manager.connect('extension-added',
-            this._onExtensionAdded.bind(this));
-
-        this._manager.connect('extension-removed',
-            this._onExtensionRemoved.bind(this));
+        this.insert_action_group('installer',
+            this._installerWidget._actionGroup);
 
         // Actions
-        const actionGroup = new Gio.SimpleActionGroup();
-        this.insert_action_group('view', actionGroup);
+        this._actions = {
+            previous: this._onPreviousActivated,
+        };
 
-        this._installAction = new Gio.SimpleAction({
-            name: 'install',
-            enabled: true,
-        });
-        this._installAction.connect('activate',
-            this._onInstallActivated.bind(this));
-        actionGroup.add_action(this._installAction);
+        for (const [name, activate] of Object.entries(this._actions)) {
+            this._actions[name] = new Gio.SimpleAction({
+                name: name,
+            });
+            this._actions[name].connect('activate', activate.bind(this));
+            this.add_action(this._actions[name]);
+        }
 
-        this._uninstallAction = new Gio.SimpleAction({
-            name: 'uninstall',
-            enabled: false,
-        });
-        this._uninstallAction.connect('activate',
-            this._onUninstallActivated.bind(this));
-        actionGroup.add_action(this._uninstallAction);
-
-        this._prefsAction = new Gio.SimpleAction({
-            name: 'prefs',
-            enabled: false,
-        });
-        this._prefsAction.connect('activate',
-            this._onPrefsActivated.bind(this));
-        actionGroup.add_action(this._prefsAction);
-
-        this._versionsAction = new Gio.SimpleAction({
-            name: 'versions',
-            enabled: true,
-        });
-        this._versionsAction.connect('activate',
-            this._onVersionsActivated.bind(this));
-        actionGroup.add_action(this._versionsAction);
-
-        this._websiteAction = new Gio.SimpleAction({
-            name: 'website',
-            enabled: true,
-        });
-        this._websiteAction.connect('activate',
-            this._onWebsiteActivated.bind(this));
-        actionGroup.add_action(this._websiteAction);
-    }
-
-    get extension() {
-        if (this._extension === undefined)
-            this._extension = null;
-
-        return this._extension;
-    }
-
-    set extension(extension) {
-        if (this.extension === extension)
-            return;
-
-        this._extension = extension;
-        this.notify('extension');
-
-        this._redraw();
+        this._versionList.set_sort_func(this._sort);
     }
 
     get info() {
@@ -331,7 +206,196 @@ var ExtensionView = GObject.registerClass({
         this._info = info;
         this.notify('info');
 
+        this._refresh();
+    }
+
+    _onPreviousActivated(_action, _parameter) {
+        const currentPage = this._stack.get_visible_child_name();
+
+        if (currentPage === 'versions') {
+            this.close();
+        } else {
+            this._installerWidget.reset();
+            this._stack.visible_child_name = 'versions';
+        }
+    }
+
+    _onPageChanged(_stack, _pspec) {
+        const title = this.info ? this.info.name : null;
+        let subtitle = _('Versions');
+
+        switch (this._stack.get_visible_child_name()) {
+            case 'versions':
+                subtitle = _('Versions');
+                break;
+
+            case 'install':
+                subtitle = _('Version %s').format(this._release.version);
+                break;
+        }
+
+        this._windowTitle.label = title;
+        this._windowSubtitle.label = subtitle;
+    }
+
+    _onRowActivated(_box, row) {
+        this._release = row.release;
+        this._installerWidget.release = row.release;
+
+        this._installerWidget.page = 'review';
+        this._stack.visible_child_name = 'install';
+    }
+
+    _redraw() {
+        /* Remove current rows */
+        let row = null;
+
+        while ((row = this._versionList.get_first_child()))
+            this._versionList.remove(row);
+
+        this._onPageChanged();
+
+        if (this.info === null)
+            return;
+
+        /* Compile release list from version map, where a release is
+         * effectively a subset of `metadata.json` with a `version_tag`. */
+        const releases = {};
+        const version_map = this.info.shell_version_map;
+
+        for (const [shell, release] of Object.entries(version_map)) {
+            if (releases[release.version] === undefined) {
+                releases[release.version] = {
+                    name: this.info.name,
+                    shell_version: [],
+                    uuid: this.info.uuid,
+                    version: release.version,
+                    version_tag: release.pk,
+                };
+            }
+
+            releases[release.version].shell_version.push(shell);
+        }
+
+        /* Add a row for each release */
+        const manager = Shell.ExtensionManager.getDefault();
+        const shellVersion = manager.shellVersion;
+
+        for (const release of Object.values(releases)) {
+            const row = new VersionRow();
+            row.release = release;
+
+            if (this._extension) {
+                if (release.version === this._extension.version)
+                    row.status = Ego.UpdateType.NONE;
+                else if (release.version > this._extension.version)
+                    row.status = Ego.UpdateType.UPGRADE;
+                else if (release.version < this._extension.version)
+                    row.status = Ego.UpdateType.DOWNGRADE;
+            } else if (Shell.releaseCompatible(release, shellVersion)) {
+                row.status = Ego.UpdateType.NEW;
+            } else {
+                row.status = Ego.UpdateType.BLACKLIST;
+            }
+
+            this._versionList.append(row);
+        }
+    }
+
+    async _refresh() {
+        if (this.info !== null && this._extension === null) {
+            const manager = Shell.ExtensionManager.getDefault();
+            this._extension = await manager.lookupPending(this.info.uuid);
+
+            if (this._extension === null)
+                this._extension = await manager.lookup(this.info.uuid);
+        }
+
+        if (this._extension)
+            log(this._extension.name + ' v' + this._extension.version);
+
         this._redraw();
+    }
+
+    _sort(row1, row2) {
+        if (row1.status === Ego.UpdateType.NONE)
+            return -1;
+
+        // NOTE: comparing row2 => row1 for descending sort
+        return parseInt(row2.version) - parseInt(row1.version);
+    }
+});
+
+
+/**
+ * A widget for viewing the details of an extension.
+ *
+ * This is the main widget for displaying extensions in the store and operates
+ * solely based on the `uuid` property. Extension metadata is loaded
+ * transparently and actions are performed asynchronously in the background.
+ */
+var ExtensionView = GObject.registerClass({
+    GTypeName: 'AnnexExtensionView',
+    Template: 'resource:///ca/andyholmes/Annex/ui/extension-view.ui',
+    InternalChildren: [
+        'iconImage',
+        'nameLabel',
+        'creatorLabel',
+        'contentScroll',
+
+        'installButton',
+        'uninstallButton',
+        'pendingButton',
+        'prefsButton',
+
+        'screenshotBox',
+        'screenshotPicture',
+        'descriptionLabel',
+    ],
+    Properties: {
+        'uuid': GObject.ParamSpec.string(
+            'uuid',
+            'UUID',
+            'Extension UUID',
+            GObject.ParamFlags.READWRITE,
+            null
+        ),
+    },
+}, class AnnexExtensionView extends Gtk.Box {
+    _init(params = {}) {
+        super._init(params);
+
+        this._extension = null;
+        this._info = null;
+
+        // Actions
+        const actionGroup = new Gio.SimpleActionGroup();
+        this.insert_action_group('view', actionGroup);
+
+        this._actions = {
+            prefs: this._onPrefsActivated,
+            install: this._onInstallActivated,
+            uninstall: this._onUninstallActivated,
+            update: this._onUpdateActivated,
+            versions: this._onVersionsActivated,
+            website: this._onWebsiteActivated,
+        };
+
+        for (const [name, activate] of Object.entries(this._actions)) {
+            this._actions[name] = new Gio.SimpleAction({
+                name: name,
+                enabled: false,
+            });
+            this._actions[name].connect('activate', activate.bind(this));
+            actionGroup.add_action(this._actions[name]);
+        }
+
+        // Watch the extension manager for changes to the extension in view
+        this._manager = Shell.ExtensionManager.getDefault();
+        this._manager.connect('extension-added',
+            this._onExtensionAdded.bind(this));
+        this._manager.connect('extension-removed',
+            this._onExtensionRemoved.bind(this));
     }
 
     get uuid() {
@@ -345,100 +409,196 @@ var ExtensionView = GObject.registerClass({
         if (this.uuid === uuid)
             return;
 
+        if (this._extension) {
+            this._extension.disconnect(this._extensionChangedId);
+            this._extension = null;
+        }
+
+        if (this._info) {
+            this._info.disconnect(this._infoChangedId);
+            this._info = null;
+        }
+
         this._uuid = uuid;
         this.notify('uuid');
 
-        this._update();
+        this._refresh();
+    }
+
+    async _checkExtension() {
+        if (this.uuid && this._extension === null) {
+            try {
+                const manager = Shell.ExtensionManager.getDefault();
+                const result = await manager.lookup(this.uuid);
+
+                if (result && result.uuid === this.uuid) {
+                    this._extension = result;
+                    this._extensionChangedId = this._extension.connect('notify',
+                        this._redraw.bind(this));
+                }
+            } catch (e) {
+                debug(e);
+            }
+        }
+
+        return this._extension instanceof Shell.Extension;
+    }
+
+    async _checkInfo() {
+        if (this.uuid && this._info === null) {
+            try {
+                const repository = Ego.Repository.getDefault();
+                const result = await repository.lookup(this.uuid);
+
+                if (result && result.uuid === this.uuid) {
+                    this._info = result;
+                    this._infoChangedId = this._info.connect('notify',
+                        this._redraw.bind(this));
+                }
+            } catch (e) {
+                debug(e);
+            }
+        }
+
+        return this._info instanceof Ego.ExtensionInfo;
+    }
+
+    async _checkUpdate() {
+        if (this._extension && this._info) {
+            try {
+                const manager = Shell.ExtensionManager.getDefault();
+
+                // Check for pending update
+                const pending = await manager.lookupPending(this.uuid);
+                this._extension.has_update = pending !== null;
+
+                // Check for available update
+                const latest = this._info.getLatestVersion(manager.shell_version);
+                const available = this._extension.version < latest.version;
+
+                this._extension.can_update = available &&
+                    !this._extension.has_update;
+            } catch (e) {
+                debug(e);
+            } finally {
+                this._redraw();
+            }
+        }
+    }
+
+    async _refresh() {
+        if (this.uuid !== null) {
+            // Only wait for the info if the extension is unavailable
+            if (await this._checkExtension())
+                this._checkInfo().then(this._redraw.bind(this));
+            else
+                await this._checkInfo();
+
+            this._redraw();
+        }
+    }
+
+    /*
+     * UI
+     */
+    _onScreenshotClicked(_gesture, _n_press, _x, _y) {
+        const parent = this.get_root();
+        const dialog = new Screenshot({
+            file: this._screenshotPicture.file,
+            modal: parent instanceof Gtk.Window,
+            transient_for: parent,
+        });
+
+        dialog.present();
+    }
+
+    _onUnmap() {
+        // Drop references when the widget is no longer in use
+        if (this._extension) {
+            this._extension.disconnect(this._extensionChangedId);
+            this._extension = null;
+        }
+
+        if (this._info) {
+            this._info.disconnect(this._infoChangedId);
+            this._info = null;
+        }
     }
 
     _redraw() {
         // Common
-        if (this.info) {
-            this._nameLabel.label = this.info.name;
-            this._creatorLabel.label = _createLink(this.info.creator,
-                this.info.creator_url);
-            this._descriptionLabel.label = this.info.description;
-        } else if (this.extension) {
-            this._nameLabel.label = this.extension.name;
+        if (this._info) {
+            this._nameLabel.label = this._info.name;
+            this._creatorLabel.label = _createLink(this._info.creator,
+                this._info.creator_url);
+            this._descriptionLabel.label = this._info.description;
+        } else if (this._extension) {
+            this._nameLabel.label = this._extension.name;
             this._creatorLabel.label = null;
-            this._descriptionLabel.label = this.extension.description;
+            this._descriptionLabel.label = this._extension.description;
         } else {
             this._nameLabel.label = null;
             this._creatorLabel.label = null;
             this._descriptionLabel.label = null;
+            this._contentScroll.vadjustment.value = 0.0;
         }
 
         // Icon
-        if (this.info && this.info.icon)
-            this._iconImage.gicon = this.info.icon;
+        if (this._info && this._info.icon)
+            this._iconImage.gicon = this._info.icon;
         else
             this._iconImage.gicon = new Gio.ThemedIcon({name: 'ego-plugin'});
 
         // Screenshot
-        if (this.info && this.info.screenshot) {
-            this._screenshotPicture.file = this.info.screenshot;
+        if (this._info && this._info.screenshot) {
+            this._screenshotPicture.file = this._info.screenshot;
             this._screenshotBox.visible = true;
         } else {
-            this._screenshotPicture.file = null;
             this._screenshotBox.visible = false;
+            this._screenshotPicture.file = null;
         }
 
         // Actions
-        this._installAction.enabled = this.extension === null && this.info;
-        this._uninstallAction.enabled = this.extension !== null &&
-            this.extension.type === Shell.ExtensionType.USER;
-        this._prefsAction.enabled = this.extension && this.extension.has_prefs;
-        this._versionsAction.enabled = this.info !== null;
+        this._actions.install.enabled = this._extension === null && this._info;
+        this._actions.uninstall.enabled = this._extension !== null &&
+            this._extension.type === Shell.ExtensionType.USER;
+        this._pendingButton.visible = this._extension && this._extension.has_update;
+        this._actions.prefs.enabled = this._extension && this._extension.has_prefs;
+        this._actions.update.enabled = this._extension && this._extension.can_update;
+        this._actions.versions.enabled = this._info !== null;
+        this._actions.website.enabled = this._extension && this._extension.url;
     }
 
-    async _update() {
-        if (this.uuid === null) {
-            this._extension = null;
-            this._info = null;
-        }
-
-        if (this.uuid && this.extension === null) {
-            try {
-                const manager = Shell.ExtensionManager.getDefault();
-                const result = await manager.lookupExtension(this.uuid);
-
-                if (result && result.uuid === this.uuid)
-                    this.extension = result;
-            } catch (e) {
-                debug(e);
-            }
-        }
-
-        if (this.uuid && this.info === null) {
-            try {
-                const repository = Ego.Repository.getDefault();
-                const result = await repository.lookupExtension(this.uuid);
-
-                if (result && result.uuid === this.uuid)
-                    this.info = result;
-            } catch (e) {
-                debug(e);
-            }
-        }
-
-        this._redraw();
-    }
-
+    /*
+     * Shell.ExtensionManager Callbacks
+     */
     _onExtensionAdded(_manager, uuid, extension) {
-        if (this.uuid === uuid)
-            this.extension = extension;
+        if (this.uuid === uuid && this._extension === null) {
+            this._extension = extension;
+            this._extensionChangedId = this._extension.connect('notify',
+                this._redraw.bind(this));
+
+            this._redraw();
+        }
     }
 
     _onExtensionRemoved(_manager, uuid, _extension) {
-        if (this.uuid === uuid)
-            this.extension = null;
+        if (this.uuid === uuid && this._extension) {
+            this._extension.disconnect(this._extensionChangedId);
+            this._extension = null;
+
+            this._redraw();
+        }
     }
 
+    /*
+     * Actions
+     */
     _confirmUninstall() {
         return new Promise((resolve, _reject) => {
             const dialog = new Gtk.MessageDialog({
                 text: _('Uninstall Extension'),
-                secondary_text: _('Uninstall “%s”?').format(this.extension.name),
+                secondary_text: _('Uninstall “%s”?').format(this._extension.name),
                 modal: true,
                 transient_for: this.get_root(),
             });
@@ -458,9 +618,9 @@ var ExtensionView = GObject.registerClass({
 
     async _onInstallActivated() {
         try {
-            await this._manager.installRemoteExtension(this.uuid);
+            await this._manager.installExtension(this.uuid);
         } catch (e) {
-            logError(e, `Installing '${this.uuid}'`);
+            warning(e, this.uuid);
         }
     }
 
@@ -469,7 +629,7 @@ var ExtensionView = GObject.registerClass({
             if (await this._confirmUninstall())
                 await this._manager.uninstallExtension(this.uuid);
         } catch (e) {
-            logError(e, `Uninstalling '${this.uuid}'`);
+            warning(e, this.uuid);
         }
     }
 
@@ -477,33 +637,40 @@ var ExtensionView = GObject.registerClass({
         try {
             await this._manager.launchExtensionPrefs(this.uuid);
         } catch (e) {
-            logError(e);
+            warning(e, this.uuid);
+        }
+    }
+
+    async _onUpdateActivated(_action, _parameter) {
+        try {
+            const latest = this._info.getLatestVersion(this._manager.shell_version);
+
+            if (latest !== undefined) {
+                const repository = Ego.Repository.getDefault();
+                const zip = await repository.lookupExtension(this.uuid,
+                    latest.pk);
+                await this._manager._queueUpdate(this.uuid, zip);
+            }
+        } catch (e) {
+            warning(e, this.uuid);
+        } finally {
+            this._refresh();
         }
     }
 
     _onVersionsActivated() {
-        if (this.info === null)
-            return;
-
         const dialog = new VersionDialog({
+            application: Gio.Application.get_default(),
             modal: true,
-            title: this.info.name,
             transient_for: this.get_root(),
         });
-        dialog.setInfo(this.info);
+        dialog._extension = this._extension;
+        dialog.info = this._info;
         dialog.present();
     }
 
     _onWebsiteActivated() {
-        let url = null;
-
-        if (this.info && this.info.url)
-            url = this.info.url;
-
-        if (this.extension && this.extension.url)
-            url = this.extension.url;
-
-        Gio.AppInfo.launch_default_for_uri(url,
+        Gio.AppInfo.launch_default_for_uri(this._extension.url,
             this.get_display().get_app_launch_context());
     }
 });

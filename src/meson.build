@@ -1,10 +1,10 @@
 
-# JavaScript Source
-src_res = gnome.compile_resources('ca.andyholmes.Annex.src',
-  'ca.andyholmes.Annex.src.gresource.xml',
+# Source
+src_res = gnome.compile_resources('@0@.src'.format(application_id),
+                                  '@0@.src.gresource.xml'.format(application_id),
   gresource_bundle: true,
-  install: true,
-  install_dir: pkgdatadir,
+           install: true,
+       install_dir: pkgdatadir,
 )
 
 bin_conf = configuration_data()
@@ -18,8 +18,8 @@ bin_conf.set('datadir', datadir)
 
 # Application
 annex = configure_file(
-          input: 'ca.andyholmes.Annex.in',
-         output: 'ca.andyholmes.Annex',
+          input: '@0@.in'.format(application_id),
+         output: application_id,
   configuration: bin_conf,
         install: true,
     install_dir: bindir

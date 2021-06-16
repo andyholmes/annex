@@ -11,6 +11,7 @@ const Shell = imports.shell;
 
 const SECTION_LIMIT = 9;
 
+
 /**
  * An extension widget for listboxes.
  */
@@ -23,6 +24,20 @@ const ExploreViewRow = GObject.registerClass({
         'descriptionLabel',
     ],
     Properties: {
+        'description': GObject.ParamSpec.string(
+            'description',
+            'Description',
+            'The extension description',
+            GObject.ParamFlags.READWRITE,
+            null
+        ),
+        'icon': GObject.ParamSpec.object(
+            'icon',
+            'Icon',
+            'The extension icon',
+            GObject.ParamFlags.READWRITE,
+            Gio.Icon.$gtype
+        ),
         'info': GObject.ParamSpec.object(
             'info',
             'Result',
@@ -30,12 +45,42 @@ const ExploreViewRow = GObject.registerClass({
             GObject.ParamFlags.READWRITE,
             Ego.ExtensionInfo.$gtype
         ),
+        'uuid': GObject.ParamSpec.string(
+            'uuid',
+            'UUID',
+            'The extension UUID',
+            GObject.ParamFlags.READWRITE,
+            null
+        ),
     },
 }, class AnnexExploreViewRow extends Gtk.ListBoxRow {
     _init(info) {
         super._init();
 
+        this.bind_property('name', this._nameLabel, 'label',
+            GObject.BindingFlags.SYNC_CREATE |
+            GObject.BindingFlags.BIDIRECTIONAL);
+
         this.info = info;
+    }
+
+    get description() {
+        return this._descriptionLabel.label;
+    }
+
+    set description(text) {
+        this._descriptionLabel.label = text.split('\n')[0];
+    }
+
+    get icon() {
+        return this._iconImage.gicon;
+    }
+
+    set icon(icon) {
+        if (icon === null)
+            icon = new Gio.ThemedIcon({name: 'ego-plugin'});
+
+        this._iconImage.gicon = icon;
     }
 
     get info() {
@@ -49,29 +94,17 @@ const ExploreViewRow = GObject.registerClass({
         if (this.info === info)
             return;
 
-        info.bind_property('icon', this._iconImage, 'gicon',
+        info.bind_property('description', this, 'description',
             GObject.BindingFlags.SYNC_CREATE);
-        info.bind_property('name', this._nameLabel, 'label',
+        info.bind_property('icon', this, 'icon',
             GObject.BindingFlags.SYNC_CREATE);
-        info.bind_property('description', this._descriptionLabel, 'label',
+        info.bind_property('name', this, 'name',
+            GObject.BindingFlags.SYNC_CREATE);
+        info.bind_property('uuid', this, 'uuid',
             GObject.BindingFlags.SYNC_CREATE);
 
         this._info = info;
         this.notify('info');
-    }
-
-    get name() {
-        if (this.info === null)
-            return null;
-
-        return this.info.name;
-    }
-
-    get uuid() {
-        if (this.info === null)
-            return null;
-
-        return this.info.uuid;
     }
 });
 
@@ -87,6 +120,13 @@ const ExploreViewTile = GObject.registerClass({
         'nameLabel',
     ],
     Properties: {
+        'icon': GObject.ParamSpec.object(
+            'icon',
+            'Icon',
+            'The extension icon',
+            GObject.ParamFlags.READWRITE,
+            Gio.Icon.$gtype
+        ),
         'info': GObject.ParamSpec.object(
             'info',
             'Result',
@@ -94,12 +134,34 @@ const ExploreViewTile = GObject.registerClass({
             GObject.ParamFlags.READWRITE,
             Ego.ExtensionInfo.$gtype
         ),
+        'uuid': GObject.ParamSpec.string(
+            'uuid',
+            'UUID',
+            'The extension UUID',
+            GObject.ParamFlags.READWRITE,
+            null
+        ),
     },
 }, class AnnexExploreViewTile extends Gtk.Frame {
     _init(info) {
         super._init();
 
+        this.bind_property('name', this._nameLabel, 'label',
+            GObject.BindingFlags.SYNC_CREATE |
+            GObject.BindingFlags.BIDIRECTIONAL);
+
         this.info = info;
+    }
+
+    get icon() {
+        return this._iconImage.gicon;
+    }
+
+    set icon(icon) {
+        if (icon === null)
+            icon = new Gio.ThemedIcon({name: 'ego-plugin'});
+
+        this._iconImage.gicon = icon;
     }
 
     get info() {
@@ -113,27 +175,17 @@ const ExploreViewTile = GObject.registerClass({
         if (this.info === info)
             return;
 
-        info.bind_property('icon', this._iconImage, 'gicon',
-            GObject.BindingFlags.SYNC_CREATE);
-        info.bind_property('name', this._nameLabel, 'label',
-            GObject.BindingFlags.SYNC_CREATE);
+        if (info) {
+            info.bind_property('icon', this, 'icon',
+                GObject.BindingFlags.SYNC_CREATE);
+            info.bind_property('name', this, 'name',
+                GObject.BindingFlags.SYNC_CREATE);
+            info.bind_property('uuid', this, 'uuid',
+                GObject.BindingFlags.SYNC_CREATE);
+        }
 
         this._info = info;
         this.notify('info');
-    }
-
-    get name() {
-        if (this.info === null)
-            return null;
-
-        return this.info.name;
-    }
-
-    get uuid() {
-        if (this.info === null)
-            return null;
-
-        return this.info.uuid;
     }
 });
 
@@ -160,6 +212,13 @@ var ExploreView = GObject.registerClass({
         'stack',
     ],
     Properties: {
+        'search': GObject.ParamSpec.string(
+            'search',
+            'Search',
+            'The search query',
+            GObject.ParamFlags.READWRITE,
+            null
+        ),
         'search-mode-enabled': GObject.ParamSpec.boolean(
             'search-mode-enabled',
             'Search Mode Enabled',
@@ -209,6 +268,9 @@ var ExploreView = GObject.registerClass({
         });
         actionGroup.add_action(sortAction);
 
+        this.bind_property('search', this._searchEntry, 'text',
+            GObject.BindingFlags.DEFAULT);
+
         this._searchScroll.vadjustment.connect('value-changed',
             this._maybeLoadMore.bind(this));
 
@@ -240,7 +302,7 @@ var ExploreView = GObject.registerClass({
 
     async _query(category) {
         /* Query e.g.o */
-        const results = await this._repository.searchExtensions({
+        const results = await this._repository.query({
             page: 1,
             search: '',
             shell_version: this._version,
@@ -279,12 +341,15 @@ var ExploreView = GObject.registerClass({
 
                 this._popularStack.visible_child_name = 'results';
                 this._popularStatus.label = null;
+            } else if (results.error) {
+                this._popularStatus.label = results.error.message;
+                this._popularStack.visible_child_name = 'status';
             } else {
                 this._popularStatus.label = _('No results');
                 this._popularStack.visible_child_name = 'status';
             }
         } catch (e) {
-            logError(e);
+            warning(e);
         }
     }
 
@@ -316,7 +381,7 @@ var ExploreView = GObject.registerClass({
                 this._recentStatus.label = null;
             }
         } catch (e) {
-            logError(e);
+            warning(e);
         }
     }
 
@@ -362,7 +427,7 @@ var ExploreView = GObject.registerClass({
     }
 
     _onSearchChanged(_entry) {
-        this._model.query = this._searchEntry.text;
+        this._model.search = this._searchEntry.text;
         this._showSearch();
     }
 
@@ -385,8 +450,8 @@ var ExploreView = GObject.registerClass({
             this._model.shell_version = manager.shell_version;
             this._version = manager.shell_version;
         } else {
-            this._model.shell_version = 'all';
-            this._version = 'all';
+            this._model.shell_version = Ego.ShellVersion.ALL;
+            this._version = Ego.ShellVersion.ALL;
         }
 
         this._searchScroll.vadjustment.value = 0.0;

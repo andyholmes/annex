@@ -21,11 +21,11 @@
                     swapped="no"/>
             <child>
               <object class="GtkShortcutController">
-                <property name='scope'>global</property>
+                <property name="scope">global</property>
                 <child>
-                  <object class='GtkShortcut'>
-                    <property name='trigger'>&lt;Control&gt;f</property>
-                    <property name='action'>activate</property>
+                  <object class="GtkShortcut">
+                    <property name="trigger">&lt;Control&gt;f</property>
+                    <property name="action">activate</property>
                   </object>
                 </child>
               </object>
@@ -105,11 +105,15 @@
   <menu id="primary-menu">
     <section>
       <item>
-        <attribute name="label" translatable="yes">Hide Unsupported</attribute>
-        <attribute name="action">win.version-filter</attribute>
+        <attribute name="label" translatable="yes">Install Zip…</attribute>
+        <attribute name="action">win.open</attribute>
       </item>
     </section>
     <section>
+      <item>
+        <attribute name="label" translatable="yes">Hide Unsupported</attribute>
+        <attribute name="action">win.version-filter</attribute>
+      </item>
       <item>
         <attribute name="label" translatable="yes">About Annex</attribute>
         <attribute name="action">win.about</attribute>

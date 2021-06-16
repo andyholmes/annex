@@ -1,9 +1,0 @@
-[Desktop Entry]
-Name=Annex
-Exec=ca.andyholmes.Annex
-Icon=ca.andyholmes.Annex
-Terminal=false
-Type=Application
-Categories=GNOME;GTK;Utility;
-OnlyShowIn=GNOME;
-StartupNotify=true

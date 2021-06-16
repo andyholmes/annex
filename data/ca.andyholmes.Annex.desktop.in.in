@@ -1,0 +1,20 @@
+[Desktop Entry]
+Name=Annex
+Comment=Install GNOME Shell Extensions
+Keywords=gnome;shell;extension;extensions;
+Exec=@application_id@ %U
+Icon=@application_id@
+Terminal=false
+Type=Application
+Categories=GNOME;GTK;Utility;
+OnlyShowIn=GNOME;
+StartupNotify=true
+MimeType=application/zip;
+DBusActivatable=true
+X-GNOME-UsesNotifications=true
+
+Actions=open;
+
+[Desktop Action open]
+Name=Install Zip…
+Exec=gapplication action @application_id@ open

@@ -6,14 +6,19 @@
 
     <!-- Icons -->
     <file>icons/ego-plugin.svg</file>
+    <file>icons/external-link-symbolic.svg</file>
+    <file>icons/gnome-shell.svg</file>
 
     <!-- UI -->
     <file>ui/explore-view.ui</file>
     <file>ui/explore-view-row.ui</file>
     <file>ui/explore-view-tile.ui</file>
+    <file>ui/extension-installer-dialog.ui</file>
+    <file>ui/extension-installer-widget.ui</file>
     <file>ui/extension-version-dialog.ui</file>
     <file>ui/extension-version-row.ui</file>
     <file>ui/extension-view.ui</file>
+    <file>ui/extension-view-screenshot.ui</file>
     <file>ui/installed-view.ui</file>
     <file>ui/installed-view-row.ui</file>
     <file>ui/window.ui</file>

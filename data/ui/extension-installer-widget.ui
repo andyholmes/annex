@@ -1,0 +1,616 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template class="AnnexExtensionInstallerWidget" parent="GtkBox">
+    <property name="orientation">vertical</property>
+    <child>
+      <object class="GtkStack" id="stack">
+        <property name="transition-type">crossfade</property>
+        <property name="interpolate-size">1</property>
+        <signal name="notify::visible-child-name"
+                handler="_onPageChanged"
+                object="AnnexExtensionInstallerWidget"
+                swapped="no"/>
+
+        <!-- Open -->
+        <child>
+          <object class="GtkStackPage">
+            <property name="name">open</property>
+            <property name="child">
+              <object class="GtkBox">
+                <property name="hexpand">1</property>
+                <property name="margin-start">32</property>
+                <property name="margin-end">32</property>
+                <property name="margin-top">32</property>
+                <property name="margin-bottom">32</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">18</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">18</property>
+                    <property name="valign">center</property>
+                    <property name="vexpand">1</property>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="icon-name">ca.andyholmes.Annex-symbolic</property>
+                        <property name="pixel-size">128</property>
+                        <style>
+                          <class name="dim-label"/>
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="label" translatable="yes">Open a file</property>
+                        <attributes>
+                          <attribute name="scale" value="1.44"/>
+                        </attributes>
+                        <style>
+                          <class name="dim-label"/>
+                        </style>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <property name="hexpand">1</property>
+                    <property name="homogeneous">1</property>
+                    <property name="spacing">12</property>
+                    <child>
+                      <object class="GtkButton" id="openButton">
+                        <property name="action-name">installer.open</property>
+                        <property name="label" translatable="yes">Open</property>
+                        <property name="visible"
+                                  bind-source="openButton"
+                                  bind-property="sensitive"
+                                  bind-flags="sync-create"/>
+                        <style>
+                          <class name="circular"/>
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="exploreButton">
+                        <property name="action-name">app.explore</property>
+                        <property name="label" translatable="yes">Store</property>
+                        <property name="visible"
+                                  bind-source="exploreButton"
+                                  bind-property="sensitive"
+                                  bind-flags="sync-create"/>
+                        <style>
+                          <class name="circular"/>
+                          <class name="suggested-action"/>
+                        </style>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </property>
+          </object>
+        </child>
+
+        <!-- Review -->
+        <child>
+          <object class="GtkStackPage">
+            <property name="name">review</property>
+            <property name="child">
+              <object class="GtkBox">
+                <property name="margin-start">32</property>
+                <property name="margin-end">32</property>
+                <property name="margin-top">32</property>
+                <property name="margin-bottom">32</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">18</property>
+
+                <!-- Extension Header -->
+                <child>
+                  <object class="GtkGrid">
+                    <property name="column-spacing">18</property>
+                    <child>
+                      <object class="GtkImage" id="extensionIcon">
+                        <property name="icon-name">ego-plugin</property>
+                        <property name="pixel-size">64</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">0</property>
+                          <property name="row-span">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="extensionName">
+                        <property name="valign">end</property>
+                        <property name="xalign">0.0</property>
+                        <attributes>
+                          <attribute name="scale" value="1.2"/>
+                          <attribute name="weight" value="bold"/>
+                        </attributes>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="extensionCreator">
+                        <property name="use-markup">1</property>
+                        <property name="valign">start</property>
+                        <property name="xalign">0.0</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+
+                <!-- Extension Information -->
+                <child>
+                  <object class="GtkFrame">
+                    <child>
+                      <object class="GtkListBox">
+                        <property name="show-separators">1</property>
+                        <property name="selection-mode">none</property>
+                        <child>
+                          <object class="GtkListBoxRow" id="versionRow">
+                            <property name="activatable">0</property>
+                            <child>
+                              <object class="GtkGrid">
+                                <property name="column-spacing">12</property>
+                                <property name="margin-start">12</property>
+                                <property name="margin-end">8</property>
+                                <property name="margin-top">8</property>
+                                <property name="margin-bottom">12</property>
+                                <child>
+                                  <object class="GtkImage" id="versionIcon">
+                                    <property name="icon-name">list-add-symbolic</property>
+                                    <property name="height-request">40</property>
+                                    <property name="width-request">40</property>
+                                    <property name="halign">center</property>
+                                    <property name="valign">center</property>
+                                    <property name="pixel-size">16</property>
+                                    <style>
+                                      <class name="installer-row-icon"/>
+                                    </style>
+                                    <layout>
+                                      <property name="column">0</property>
+                                      <property name="row">0</property>
+                                      <property name="row-span">2</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="versionTitle">
+                                    <property name="hexpand">1</property>
+                                    <property name="xalign">0.0</property>
+                                    <attributes>
+                                      <attribute name="weight" value="bold"/>
+                                    </attributes>
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">0</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="versionDescription">
+                                    <property name="ellipsize">middle</property>
+                                    <property name="hexpand">1</property>
+                                    <property name="xalign">0.0</property>
+                                    <style>
+                                      <class name="dim-label"/>
+                                    </style>
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">1</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkListBoxRow" id="shellRow">
+                            <property name="activatable">0</property>
+                            <child>
+                              <object class="GtkGrid">
+                                <property name="column-spacing">12</property>
+                                <property name="margin-start">12</property>
+                                <property name="margin-end">8</property>
+                                <property name="margin-top">8</property>
+                                <property name="margin-bottom">12</property>
+                                <child>
+                                  <object class="GtkImage" id="shellIcon">
+                                    <property name="icon-name">start-here-symbolic</property>
+                                    <property name="halign">center</property>
+                                    <property name="valign">center</property>
+                                    <property name="pixel-size">16</property>
+                                    <style>
+                                      <class name="installer-row-icon"/>
+                                    </style>
+                                    <layout>
+                                      <property name="column">0</property>
+                                      <property name="row">0</property>
+                                      <property name="row-span">2</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="shellTitle">
+                                    <property name="hexpand">1</property>
+                                    <property name="xalign">0.0</property>
+                                    <attributes>
+                                      <attribute name="weight" value="bold"/>
+                                    </attributes>
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">0</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="shellDescription">
+                                    <property name="ellipsize">end</property>
+                                    <property name="hexpand">1</property>
+                                    <property name="tooltip-text"
+                                              bind-source="shellDescription"
+                                              bind-property="label"
+                                              bind-flags="sync-create"/>
+                                    <property name="xalign">0.0</property>
+                                    <style>
+                                      <class name="dim-label"/>
+                                    </style>
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">1</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkListBoxRow" id="sourceRow">
+                            <property name="activatable">0</property>
+                            <child>
+                              <object class="GtkGrid">
+                                <property name="column-spacing">12</property>
+                                <property name="margin-start">12</property>
+                                <property name="margin-end">8</property>
+                                <property name="margin-top">8</property>
+                                <property name="margin-bottom">12</property>
+                                <child>
+                                  <object class="GtkImage" id="sourceIcon">
+                                    <property name="icon-name">folder-symbolic</property>
+                                    <property name="halign">center</property>
+                                    <property name="valign">center</property>
+                                    <property name="pixel-size">16</property>
+                                    <style>
+                                      <class name="installer-row-icon"/>
+                                    </style>
+                                    <layout>
+                                      <property name="column">0</property>
+                                      <property name="row">0</property>
+                                      <property name="row-span">2</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="sourceTitle">
+                                    <property name="hexpand">1</property>
+                                    <property name="xalign">0.0</property>
+                                    <attributes>
+                                      <attribute name="weight" value="bold"/>
+                                    </attributes>
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">0</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="sourceDescription">
+                                    <property name="ellipsize">middle</property>
+                                    <property name="hexpand">1</property>
+                                    <property name="tooltip-text"
+                                              bind-source="sourceDescription"
+                                              bind-property="label"
+                                              bind-flags="sync-create"/>
+                                    <property name="xalign">0.0</property>
+                                    <style>
+                                      <class name="dim-label"/>
+                                    </style>
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">1</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </property>
+          </object>
+        </child>
+
+        <!-- Progress -->
+        <child>
+          <object class="GtkStackPage">
+            <property name="name">progress</property>
+            <property name="child">
+              <object class="GtkBox">
+                <property name="hexpand">1</property>
+                <property name="margin-start">32</property>
+                <property name="margin-end">32</property>
+                <property name="margin-top">32</property>
+                <property name="margin-bottom">32</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">18</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">6</property>
+                    <property name="valign">center</property>
+                    <property name="vexpand">1</property>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="gicon"
+                                  bind-source="extensionIcon"
+                                  bind-property="gicon"
+                                  bind-flags="sync-create"/>
+                        <property name="pixel-size">64</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="label"
+                                  bind-source="extensionName"
+                                  bind-property="label"
+                                  bind-flags="sync-create"/>
+                        <attributes>
+                          <attribute name="scale" value="1.2"/>
+                          <attribute name="weight" value="bold"/>
+                        </attributes>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkProgressBar" id="progressBar">
+                        <property name="margin-top">6</property>
+                        <property name="margin-bottom">6</property>
+                        <property name="margin-start">6</property>
+                        <property name="margin-end">6</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="progressButtons">
+                    <property name="hexpand">1</property>
+                    <property name="homogeneous">1</property>
+                    <property name="spacing">12</property>
+                    <child>
+                      <object class="GtkButton" id="cancelButton">
+                        <property name="action-name">installer.cancel</property>
+                        <property name="label" translatable="yes">Cancel</property>
+                        <property name="visible"
+                                  bind-source="cancelButton"
+                                  bind-property="sensitive"
+                                  bind-flags="sync-create"/>
+                        <style>
+                          <class name="circular"/>
+                        </style>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </property>
+          </object>
+        </child>
+
+        <!-- Success -->
+        <child>
+          <object class="GtkStackPage">
+            <property name="name">success</property>
+            <property name="child">
+              <object class="GtkBox">
+                <property name="hexpand">1</property>
+                <property name="margin-start">32</property>
+                <property name="margin-end">32</property>
+                <property name="margin-top">32</property>
+                <property name="margin-bottom">32</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">18</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">6</property>
+                    <property name="valign">center</property>
+                    <property name="vexpand">1</property>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="gicon"
+                                  bind-source="extensionIcon"
+                                  bind-property="gicon"
+                                  bind-flags="sync-create"/>
+                        <property name="pixel-size">64</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="label"
+                                  bind-source="extensionName"
+                                  bind-property="label"
+                                  bind-flags="sync-create"/>
+                        <attributes>
+                          <attribute name="scale" value="1.2"/>
+                          <attribute name="weight" value="bold"/>
+                        </attributes>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="successDescription">
+                        <property name="justify">center</property>
+                        <property name="label" translatable="yes">Installation will complete at next login</property>
+                        <property name="wrap">1</property>
+                        <property name="wrap-mode">word-char</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="successButtons">
+                    <property name="hexpand">1</property>
+                    <property name="homogeneous">1</property>
+                    <property name="spacing">12</property>
+                    <child>
+                      <object class="GtkButton" id="closeButton">
+                        <property name="action-name">window.close</property>
+                        <property name="label" translatable="yes">Close</property>
+                        <property name="visible"
+                                  bind-source="closeButton"
+                                  bind-property="sensitive"
+                                  bind-flags="sync-create"/>
+                        <style>
+                          <class name="circular"/>
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="viewButton">
+                        <property name="action-name">app.view</property>
+                        <property name="action-target">''</property>
+                        <property name="label" translatable="yes">View in Store</property>
+                        <property name="visible"
+                                  bind-source="viewButton"
+                                  bind-property="sensitive"
+                                  bind-flags="sync-create"/>
+                        <signal name="clicked"
+                                handler="_onCancelActivated"
+                                object="AnnexExtensionInstallerWidget"
+                                swapped="no"/>
+                        <style>
+                          <class name="circular"/>
+                          <class name="suggested-action"/>
+                        </style>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </property>
+          </object>
+        </child>
+
+        <!-- Error -->
+        <child>
+          <object class="GtkStackPage">
+            <property name="name">error</property>
+            <property name="child">
+              <object class="GtkScrolledWindow">
+                <property name="hscrollbar-policy">never</property>
+                <property name="propagate-natural-height">1</property>
+                <property name="vexpand">true</property>
+                <child>
+                  <object class="GtkViewport">
+                    <property name="scroll-to-focus">1</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="hexpand">1</property>
+                        <property name="margin-start">32</property>
+                        <property name="margin-end">32</property>
+                        <property name="margin-top">32</property>
+                        <property name="margin-bottom">32</property>
+                        <property name="orientation">vertical</property>
+                        <property name="spacing">18</property>
+                        <property name="valign">center</property>
+                        <child>
+                          <object class="GtkLabel" id="errorTitle">
+                            <property name="label" translatable="yes">Something’s gone wrong</property>
+                            <attributes>
+                              <attribute name="scale" value="1.44"/>
+                            </attributes>
+                            <style>
+                              <class name="dim-label"/>
+                            </style>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="errorDescription">
+                            <property name="label" translatable="yes">We’re very sorry, but there’s been a problem opening the extension. We recommend that you obtain a new copy of the file.</property>
+                            <property name="justify">center</property>
+                            <property name="wrap">1</property>
+                            <property name="wrap-mode">word-char</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkFrame">
+                            <child>
+                              <object class="GtkBox">
+                                <property name="orientation">vertical</property>
+                                <child>
+                                  <object class="GtkExpander" id="errorExpander">
+                                    <property name="hexpand">1</property>
+                                    <property name="label" translatable="yes">Details</property>
+                                    <property name="margin-start">12</property>
+                                    <property name="margin-end">12</property>
+                                    <property name="margin-top">8</property>
+                                    <property name="margin-bottom">8</property>
+                                    <property name="valign">center</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkRevealer">
+                                    <property name="reveal-child"
+                                              bind-source="errorExpander"
+                                              bind-property="expanded"
+                                              bind-flags="sync-create"/>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="orientation">vertical</property>
+                                        <child>
+                                          <object class="GtkSeparator"/>
+                                        </child>
+                                        <child>
+                                          <object class="GtkTextView" id="errorView">
+                                            <property name="editable">0</property>
+                                            <property name="hexpand">1</property>
+                                            <property name="monospace">1</property>
+                                            <property name="wrap-mode">word-char</property>
+                                            <property name="left-margin">12</property>
+                                            <property name="right-margin">12</property>
+                                            <property name="top-margin">12</property>
+                                            <property name="bottom-margin">12</property>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </property>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>

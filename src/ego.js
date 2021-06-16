@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // SPDX-FileCopyrightText: 2021 Andy Holmes <andrew.g.r.holmes@gmail.com>
 
-/* exported Repository, SearchResults, parseVersionMap */
+/* exported Repository, SearchResults, ShellVersion, SortType, UpdateType */
 
 const {GLib, GObject, Gio, Soup} = imports.gi;
 
@@ -11,6 +11,7 @@ const BASE_URI = 'https://extensions.gnome.org';
 const EGO_EXTENSION_INFO = `${BASE_URI}/extension-info/`;
 const EGO_EXTENSION_QUERY = `${BASE_URI}/extension-query/`;
 const EGO_DOWNLOAD_EXTENSION = `${BASE_URI}/download-extension/`;
+const EGO_UPDATE_INFO = `${BASE_URI}/update-info/`;
 
 
 /* Directories */
@@ -23,7 +24,19 @@ for (const dir of [CACHEDIR, CONFIGDIR, DATADIR])
 
 
 /**
- * Enum for search result order.
+ * Enumeration of GNOME Shell versions.
+ *
+ * @readonly
+ * @enum {string}
+ */
+var ShellVersion = {
+    ALL: 'all',
+    3.38: '3.38',
+    40: '40',
+};
+
+/**
+ * Enumeration of search result order.
  *
  * @readonly
  * @enum {string}
@@ -35,29 +48,19 @@ var SortType = {
     RECENT: 'recent',
 };
 
-
 /**
- * Takes an Ego.ExtensionInfo and returns a dictionary of version-info pairs.
+ * Enumeration of extension update types.
  *
- * @param {Ego.ExtensionInfo} info - An extension info
- * @return {Object} dictionary of releases
+ * @readonly
+ * @enum {string}
  */
-function parseVersionMap(info) {
-    const versions = {};
-
-    for (const [shell, release] of Object.entries(info.shell_version_map)) {
-        if (versions[release.version] === undefined) {
-            versions[release.version] = {
-                pk: release.pk,
-                shell_versions: [],
-            };
-        }
-
-        versions[release.version].shell_versions.push(shell);
-    }
-
-    return versions;
-}
+var UpdateType = {
+    NONE: 'none',
+    BLACKLIST: 'blacklist',
+    DOWNGRADE: 'downgrade',
+    NEW: 'new',
+    UPGRADE: 'upgrade',
+};
 
 
 /**
@@ -124,10 +127,16 @@ var ExtensionInfo = GObject.registerClass({
         ),
     },
 }, class ExtensionInfo extends GObject.Object {
-    _init(info = {}) {
+    _init(properties = {}) {
         super._init();
 
-        this.update(info);
+        this.updateState(properties);
+    }
+
+    get creator_markup() {
+        const uri = `${BASE_URI}/accounts/profile/${this.creator}`;
+
+        return `<a href="${uri}">${this.creator}</a>`;
     }
 
     get creator_url() {
@@ -138,17 +147,42 @@ var ExtensionInfo = GObject.registerClass({
     }
 
     get icon() {
-        if (this._icon === undefined)
-            this._icon = new Gio.ThemedIcon({name: 'plugin'});
+        if (this._icon === undefined || this._icon === null)
+            this._icon = new Gio.ThemedIcon({name: 'ego-plugin'});
 
         return this._icon;
     }
 
     set icon(icon) {
-        if (this.icon !== icon) {
-            this._icon = icon;
-            this.notify('icon');
+        if (this.icon === icon)
+            return;
+
+        this._icon = icon;
+        this.notify('icon');
+    }
+
+    /**
+     * Get the latest version.
+     *
+     * @param {string} shell_version - the target Shell version
+     * @return {number} the latest supported version
+     */
+    getLatestVersion(shell_version = '') {
+        const [shellMajor, shellMinor] = shell_version.split('.');
+        const versions = [];
+
+        for (const [shell, release] of Object.entries(this.shell_version_map)) {
+            const [major, minor] = shell.split('.');
+
+            if (!shellMajor)
+                versions[release.version] = release;
+            else if (major === shellMajor && minor === shellMinor)
+                versions[release.version] = release;
+            else if (major === shellMajor && major >= 40)
+                versions[release.version] = release;
         }
+
+        return versions.pop();
     }
 
     /**
@@ -161,7 +195,9 @@ var ExtensionInfo = GObject.registerClass({
      * @param {string} properties.creator - the creator's username
      * @param {Object} properties.shell_version_map - the version map
      */
-    update(properties) {
+    updateState(properties) {
+        this._json = properties;
+
         // Update native properties
         this.uuid = properties.uuid;
         this.name = properties.name;
@@ -177,8 +213,9 @@ var ExtensionInfo = GObject.registerClass({
 
         if (properties.icon) {
             repository.lookupFile(properties.icon).then(file => {
-                this.icon = new Gio.FileIcon({file});
-            });
+                this._icon = new Gio.FileIcon({file});
+                this.notify('icon');
+            }).catch(warning);
         }
 
         if (properties.screenshot) {
@@ -186,6 +223,10 @@ var ExtensionInfo = GObject.registerClass({
                 this.screenshot = file;
             });
         }
+    }
+
+    toJson() {
+        return this._json;
     }
 });
 
@@ -322,7 +363,7 @@ var Repository = GObject.registerClass({
 
         const [source, target] = await Promise.all([sendTask, replaceTask]);
 
-        return new Promise((resolve, reject) => {
+        await new Promise((resolve, reject) => {
             target.splice_async(
                 source,
                 Gio.OutputStreamSpliceFlags.CLOSE_SOURCE |
@@ -331,14 +372,15 @@ var Repository = GObject.registerClass({
                 cancellable,
                 (stream, result) => {
                     try {
-                        stream.splice_finish(result);
-                        resolve(dest);
+                        resolve(stream.splice_finish(result));
                     } catch (e) {
                         reject(e);
                     }
                 }
             );
         });
+
+        return dest;
     }
 
     _requestJson(message) {
@@ -369,6 +411,8 @@ var Repository = GObject.registerClass({
      * @return {Promise<Gio.File>} the resulting file
      */
     _downloadExtension(uuid, parameters = {}) {
+        debug(`${uuid}, ${JSON.stringify(parameters)}`);
+
         const message = Soup.form_request_new_from_hash('GET',
             `${EGO_DOWNLOAD_EXTENSION}${uuid}.shell-extension.zip`, parameters);
 
@@ -385,7 +429,15 @@ var Repository = GObject.registerClass({
         return this._requestFile(message, dest);
     }
 
+    /**
+     * Query EGO for the extension @uuid.
+     *
+     * @param {string} uuid - an extension UUID
+     * @return {Object} extension metadata
+     */
     _extensionInfo(uuid) {
+        debug(`${uuid}`);
+
         const message = Soup.form_request_new_from_hash('GET',
             EGO_EXTENSION_INFO, {uuid});
 
@@ -403,10 +455,61 @@ var Repository = GObject.registerClass({
      * @return {Object} extension metadata
      */
     _extensionQuery(parameters) {
+        debug(`${JSON.stringify(parameters)}`);
+
         const message = Soup.form_request_new_from_hash('GET',
             EGO_EXTENSION_QUERY, parameters);
 
         return this._requestJson(message);
+    }
+
+    /**
+     * Query EGO for the members of @installed that have available updates.
+     *
+     * @param {Object} parameters - A dictionary of search parameters
+     * @param {string} parameters.disable_version_validation - Strict versioning
+     * @param {string} parameters.shell_version - The GNOME Shell version
+     * @param {Object} installed - A dictionary of UUID-Properties entries
+     * @return {Object} a dictionary of UUID-UpdateType pairs
+     */
+    _updateInfo(parameters, installed) {
+        debug(`${JSON.stringify(parameters)}, ${JSON.stringify(installed)}`);
+
+        /* Prepare message */
+        const uri = Soup.URI.new(EGO_UPDATE_INFO);
+        uri.set_query_from_form(parameters);
+
+        const message = Soup.Message.new_from_uri('POST', uri);
+        message.set_request('application/json', Soup.MemoryUse.COPY,
+            JSON.stringify(installed));
+
+        return this._requestJson(message);
+    }
+
+    /**
+     * Check if the extension @uuid has an update for @version.
+     *
+     * @param {string} uuid - an extension UUID
+     * @param {string} version - an extension version
+     * @param {string} shell_version - an GNOME Shell version
+     * @return {boolean} %true if update available
+     */
+    async checkUpdate(uuid, version, shell_version = '') {
+        try {
+            const info = await this.lookup(uuid);
+            const latest = info.getLatestVersion(shell_version);
+
+            if (latest === undefined || latest.version === version)
+                return UpdateType.NONE;
+            else if (latest.version > version)
+                return UpdateType.UPGRADE;
+            else if (latest.version < version)
+                return UpdateType.DOWNGRADE;
+        } catch (e) {
+            warning(e, `${e.code}`);
+        }
+
+        return false;
     }
 
     /**
@@ -415,7 +518,7 @@ var Repository = GObject.registerClass({
      * @param {string} uuid - an extension UUID
      * @return {ExtensionInfo} extension metadata
      */
-    async lookupExtension(uuid) {
+    async lookup(uuid) {
         let extension = this._extensions.get(uuid);
 
         if (extension === undefined) {
@@ -435,7 +538,7 @@ var Repository = GObject.registerClass({
     }
 
     /**
-     * Get the extension ZIP for version @tag of extension @uuid. If downloaded
+     * Get the extension ZIP identified by @tag for @uuid. If downloaded
      * successfully the file will be cached locally.
      *
      * A Gio.File for the local copy will always be returned, but may not point
@@ -445,12 +548,15 @@ var Repository = GObject.registerClass({
      * @param {string} tag - The release PK
      * @return {Gio.File} a locally cached remote file
      */
-    async lookupExtensionTag(uuid, tag) {
+    async lookupExtension(uuid, tag) {
         const file = this._getFile(`/download-extension/${uuid}.${tag}.shell-extension.zip`);
 
         if (!file.query_exists(null)) {
             try {
-                await this._downloadExtension(uuid, {version_tag: `${tag}`});
+                await this._downloadExtension(uuid, {
+                    disable_version_validation: `${true}`,
+                    version_tag: `${tag}`,
+                });
             } catch (e) {
                 warning(e);
             }
@@ -494,10 +600,7 @@ var Repository = GObject.registerClass({
      * @param {string} parameters.shell_version - The GNOME Shell version
      * @return {ExtensionInfo} extension metadata
      */
-    async searchExtensions(parameters) {
-        for (const [key, value] of Object.entries(parameters))
-            parameters[key] = value.toString();
-
+    async query(parameters) {
         let results = {
             extensions: [],
             total: 0,
@@ -505,25 +608,27 @@ var Repository = GObject.registerClass({
         };
 
         try {
+            for (const [key, value] of Object.entries(parameters))
+                parameters[key] = value.toString();
+
             results = await this._extensionQuery(parameters);
             results.parameters = parameters;
             results.error = null;
-            results.extensions = results.extensions.map(result => {
-                let info = this._extensions.get(result.uuid);
+            results.extensions = results.extensions.map(properties => {
+                let info = this._extensions.get(properties.uuid);
 
                 if (info === undefined) {
-                    info = new ExtensionInfo(result);
+                    info = new ExtensionInfo(properties);
                     this._extensions.set(info.uuid, info);
                 } else {
-                    info.update(result);
+                    info.updateState(properties);
                 }
 
                 return info;
             });
         } catch (e) {
-            debug(e);
-            results.error = e;
             results.parameters = parameters;
+            results.error = e;
         }
 
         return results;
@@ -532,7 +637,12 @@ var Repository = GObject.registerClass({
 
 
 /**
- * A GListModel for continuous results.
+ * A GListModel for search results, controlled by the `SearchMode.query`,
+ * `SearchModel.shell-version` and `SearchModel.sort` properties.
+ *
+ * Progressive loading for continuous views should call `loadMore()` to add
+ * more items to the model. Paged loading should use the `page` property to
+ * replace the items in the model.
  */
 var SearchResults = GObject.registerClass({
     GTypeName: 'AnnexEgoSearchResults',
@@ -554,10 +664,10 @@ var SearchResults = GObject.registerClass({
             1, GLib.MAXUINT32,
             1
         ),
-        'query': GObject.ParamSpec.string(
-            'query',
+        'search': GObject.ParamSpec.string(
+            'search',
             'Query',
-            'The seach query',
+            'The search query',
             GObject.ParamFlags.READWRITE,
             ''
         ),
@@ -566,7 +676,7 @@ var SearchResults = GObject.registerClass({
             'Shell Version',
             'The supported GNOME Shell version',
             GObject.ParamFlags.READWRITE,
-            'all'
+            ShellVersion.ALL
         ),
         'sort': GObject.ParamSpec.string(
             'sort',
@@ -608,32 +718,32 @@ var SearchResults = GObject.registerClass({
         this.configure({page});
     }
 
-    get query() {
-        if (this._query === undefined)
-            this._query = '';
+    get search() {
+        if (this._search === undefined)
+            this._search = '';
 
-        return this._query;
+        return this._search;
     }
 
-    set query(query) {
-        if (this.query === query)
+    set search(search) {
+        if (this.search === search)
             return;
 
-        this.configure({search: query});
+        this.configure({search});
     }
 
     get shell_version() {
         if (this._shell_version === undefined)
-            this._shell_version = 'all';
+            this._shell_version = ShellVersion.ALL;
 
         return this._shell_version;
     }
 
-    set shell_version(version) {
-        if (this.shell_version === version)
+    set shell_version(shell_version) {
+        if (this.shell_version === shell_version)
             return;
 
-        this.configure({shell_version: version});
+        this.configure({shell_version});
     }
 
     get sort() {
@@ -643,11 +753,11 @@ var SearchResults = GObject.registerClass({
         return this._sort;
     }
 
-    set sort(type) {
-        if (this.sort === type)
+    set sort(sort) {
+        if (this.sort === sort)
             return;
 
-        this.configure({sort: type});
+        this.configure({sort});
     }
 
     vfunc_get_item(position) {
@@ -697,7 +807,7 @@ var SearchResults = GObject.registerClass({
             /* Prepare query */
             parameters = Object.assign({
                 page: this.page + 1,
-                search: this.query,
+                search: this.search,
                 shell_version: this.shell_version,
                 sort: this.sort,
             }, parameters);
@@ -710,7 +820,7 @@ var SearchResults = GObject.registerClass({
                 return;
 
             /* Query e.g.o */
-            const results = await this._repository.searchExtensions(parameters);
+            const results = await this._repository.query(parameters);
 
             if (this._results[results.parameters.page] === results.parameters)
                 this._results[results.parameters.page] = results;
@@ -728,9 +838,9 @@ var SearchResults = GObject.registerClass({
                 this.notify('page');
             }
 
-            if (this.query !== results.parameters.search) {
-                this._query = results.parameters.search;
-                this.notify('query');
+            if (this.search !== results.parameters.search) {
+                this._search = results.parameters.search;
+                this.notify('search');
             }
 
             if (this.shell_version !== results.parameters.shell_version) {

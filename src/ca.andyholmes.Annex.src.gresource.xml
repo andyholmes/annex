@@ -3,6 +3,7 @@
   <gresource prefix="/ca/andyholmes/Annex/js">
     <file>ego.js</file>
     <file>exploreView.js</file>
+    <file>extensionInstaller.js</file>
     <file>extensionView.js</file>
     <file>installedView.js</file>
     <file>main.js</file>

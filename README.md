@@ -1,6 +1,6 @@
 # Annex
 
-Annex is a simple appstore for [GNOME Shell Extensions](gnome-shell-extensions).
+Annex is a simple appstore for [GNOME Shell Extensions][gnome-shell-extensions].
 
 ## Status
 

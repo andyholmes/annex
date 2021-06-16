@@ -22,12 +22,26 @@ const InstalledViewRow = GObject.registerClass({
         'updateImage',
     ],
     Properties: {
+        'description': GObject.ParamSpec.string(
+            'description',
+            'Description',
+            'The extension description',
+            GObject.ParamFlags.READWRITE,
+            null
+        ),
         'extension': GObject.ParamSpec.object(
             'extension',
             'Extension',
             'The extension object',
             GObject.ParamFlags.READWRITE,
             Shell.Extension.$gtype
+        ),
+        'icon': GObject.ParamSpec.object(
+            'icon',
+            'Icon',
+            'The extension icon',
+            GObject.ParamFlags.READWRITE,
+            Gio.Icon.$gtype
         ),
         'info': GObject.ParamSpec.object(
             'info',
@@ -36,12 +50,31 @@ const InstalledViewRow = GObject.registerClass({
             GObject.ParamFlags.READABLE,
             Ego.ExtensionInfo.$gtype
         ),
+        'uuid': GObject.ParamSpec.string(
+            'uuid',
+            'UUID',
+            'The extension UUID',
+            GObject.ParamFlags.READWRITE,
+            null
+        ),
     },
 }, class AnnexInstalledViewRow extends Gtk.ListBoxRow {
     _init(extension) {
         super._init();
 
+        this.bind_property('name', this._nameLabel, 'label',
+            GObject.BindingFlags.SYNC_CREATE |
+            GObject.BindingFlags.BIDIRECTIONAL);
+
         this.extension = extension;
+    }
+
+    get description() {
+        return this._descriptionLabel.label;
+    }
+
+    set description(text) {
+        this._descriptionLabel.label = text.split('\n')[0];
     }
 
     get extension() {
@@ -55,9 +88,11 @@ const InstalledViewRow = GObject.registerClass({
         if (this.extension === extension)
             return;
 
-        extension.bind_property('name', this._nameLabel, 'label',
+        extension.bind_property('description', this, 'description',
             GObject.BindingFlags.SYNC_CREATE);
-        extension.bind_property('description', this._descriptionLabel, 'label',
+        extension.bind_property('name', this, 'name',
+            GObject.BindingFlags.SYNC_CREATE);
+        extension.bind_property('uuid', this, 'uuid',
             GObject.BindingFlags.SYNC_CREATE);
         extension.bind_property('has-update', this._updateImage, 'visible',
             GObject.BindingFlags.SYNC_CREATE);
@@ -71,25 +106,22 @@ const InstalledViewRow = GObject.registerClass({
         this._update();
     }
 
+    get icon() {
+        return this._iconImage.gicon;
+    }
+
+    set icon(icon) {
+        if (icon === null)
+            icon = new Gio.ThemedIcon({name: 'ego-plugin'});
+
+        this._iconImage.gicon = icon;
+    }
+
     get info() {
         if (this._info === undefined)
             this._info = null;
 
         return this._info;
-    }
-
-    get name() {
-        if (this.extension === null)
-            return null;
-
-        return this.extension.name;
-    }
-
-    get uuid() {
-        if (this.extension === null)
-            return null;
-
-        return this.extension.uuid;
     }
 
     _onStateChanged(_extension, _pspec) {
@@ -137,14 +169,14 @@ const InstalledViewRow = GObject.registerClass({
     async _update() {
         if (this.extension && this.info === null) {
             const repository = Ego.Repository.getDefault();
-            const info = await repository.lookupExtension(this.uuid);
+            const info = await repository.lookup(this.uuid);
 
             if (info && info.uuid === this.uuid) {
-                info.bind_property('icon', this._iconImage, 'gicon',
+                info.bind_property('description', this, 'description',
                     GObject.BindingFlags.SYNC_CREATE);
-                info.bind_property('name', this._nameLabel, 'label',
+                info.bind_property('icon', this, 'icon',
                     GObject.BindingFlags.SYNC_CREATE);
-                info.bind_property('description', this._descriptionLabel, 'label',
+                info.bind_property('name', this, 'name',
                     GObject.BindingFlags.SYNC_CREATE);
 
                 this._info = info;
@@ -202,16 +234,11 @@ var InstalledView = GObject.registerClass({
     }
 
     _onExtensionRemoved(_manager, uuid, _extension) {
-        for (const row of this._userList) {
-            if (row instanceof InstalledViewRow && row.uuid === uuid) {
-                this._userList.remove(row);
-                return;
-            }
-        }
+        const rows = [...this._userList, ...this._systemList];
 
-        for (const row of this._systemList) {
+        for (const row of rows) {
             if (row instanceof InstalledViewRow && row.uuid === uuid) {
-                this._systemList.remove(row);
+                row.get_ancestor(Gtk.ListBox.$gtype).remove(row);
                 return;
             }
         }
@@ -220,12 +247,16 @@ var InstalledView = GObject.registerClass({
     _onKeynavFailed(widget, dir) {
         let child = null;
 
+        /* Navigating down towards the system list */
         if (widget === this._userList && dir === Gtk.DirectionType.DOWN) {
             child = this._systemList.get_first_child();
 
             if (child === this._systemPlaceholder)
                 child = child.get_next_sibling();
-        } else if (widget === this._systemList && dir === Gtk.DirectionType.UP) {
+        }
+
+        /* Navigating up towards the user list */
+        if (widget === this._systemList && dir === Gtk.DirectionType.UP) {
             child = this._userList.get_last_child();
 
             if (child === this._userPlaceholder)

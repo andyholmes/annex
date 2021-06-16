@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: annex\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-05-23 14:51-0700\n"
+"POT-Creation-Date: 2021-06-15 19:02-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,8 +17,20 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: data/ca.andyholmes.Annex.desktop.in:3 src/window.js:91
+#: data/ca.andyholmes.Annex.desktop.in.in:3 src/window.js:67
 msgid "Annex"
+msgstr ""
+
+#: data/ca.andyholmes.Annex.desktop.in.in:4
+msgid "Install GNOME Shell Extensions"
+msgstr ""
+
+#: data/ca.andyholmes.Annex.desktop.in.in:5
+msgid "gnome;shell;extension;extensions;"
+msgstr ""
+
+#: data/ca.andyholmes.Annex.desktop.in.in:20 data/ui/window.ui:108
+msgid "Install Zip…"
 msgstr ""
 
 #: data/ca.andyholmes.Annex.gschema.xml:6
@@ -55,40 +67,120 @@ msgstr ""
 
 #. Display loading and empty the results box
 #: data/ui/explore-view.ui:120 data/ui/explore-view.ui:216
-#: data/ui/explore-view.ui:291 src/exploreView.js:264 src/exploreView.js:296
+#: data/ui/explore-view.ui:291 src/exploreView.js:326 src/exploreView.js:361
 msgid "Loading…"
 msgstr ""
 
 #: data/ui/explore-view.ui:166
-msgid "Recently Updated"
+msgid "New & Updated"
 msgstr ""
 
-#: data/ui/extension-view.ui:56
+#: data/ui/extension-installer-dialog.ui:6 src/extensionInstaller.js:43
+msgid "Install Extension"
+msgstr ""
+
+#: data/ui/extension-installer-dialog.ui:18
+msgid "Previous"
+msgstr ""
+
+#: data/ui/extension-installer-dialog.ui:28
+#: data/ui/extension-installer-widget.ui:405 src/extensionInstaller.js:49
+#: src/extensionInstaller.js:81 src/extensionView.js:606
+msgid "Cancel"
+msgstr ""
+
+#: data/ui/extension-installer-dialog.ui:38
+#: data/ui/extension-version-dialog.ui:44 data/ui/extension-view.ui:74
+#: src/extensionInstaller.js:50 src/extensionView.js:122
 msgid "Install"
 msgstr ""
 
-#: data/ui/extension-view.ui:70
-msgid "Remove"
+#: data/ui/extension-installer-widget.ui:44
+msgid "Open a file"
 msgstr ""
 
-#: data/ui/extension-view.ui:145
-msgid "Description"
+#: data/ui/extension-installer-widget.ui:63
+msgid "Open"
 msgstr ""
 
-#: data/ui/extension-view.ui:176
-msgid "More Information"
+#: data/ui/extension-installer-widget.ui:76
+msgid "Store"
 msgstr ""
 
-#: data/ui/extension-view.ui:209
+#: data/ui/extension-installer-widget.ui:465
+msgid "Installation will complete at next login"
+msgstr ""
+
+#: data/ui/extension-installer-widget.ui:480
+msgid "Close"
+msgstr ""
+
+#: data/ui/extension-installer-widget.ui:494
+msgid "View in Store"
+msgstr ""
+
+#: data/ui/extension-installer-widget.ui:540
+msgid "Something’s gone wrong"
+msgstr ""
+
+#: data/ui/extension-installer-widget.ui:551
+msgid ""
+"We’re very sorry, but there’s been a problem opening the extension. We "
+"recommend that you obtain a new copy of the file."
+msgstr ""
+
+#: data/ui/extension-installer-widget.ui:565
+msgid "Details"
+msgstr ""
+
+#: data/ui/extension-version-dialog.ui:26 data/ui/extension-view.ui:249
+#: src/extensionView.js:225 src/extensionView.js:229
 msgid "Versions"
 msgstr ""
 
-#: data/ui/extension-view.ui:233
+#: data/ui/extension-version-dialog.ui:86
+msgid "Available Versions"
+msgstr ""
+
+#: data/ui/extension-version-dialog.ui:105
+msgid "No Versions"
+msgstr ""
+
+#: data/ui/extension-version-row.ui:37 data/ui/window.ui:83
+#: src/extensionView.js:104
+msgid "Installed"
+msgstr ""
+
+#: data/ui/extension-view.ui:60
+msgid "Update"
+msgstr ""
+
+#: data/ui/extension-view.ui:88
+msgid "Remove"
+msgstr ""
+
+#: data/ui/extension-view.ui:111
+msgid "Extension Preferences"
+msgstr ""
+
+#: data/ui/extension-view.ui:185
+msgid "Description"
+msgstr ""
+
+#: data/ui/extension-view.ui:216
+msgid "More Information"
+msgstr ""
+
+#: data/ui/extension-view.ui:284
 msgid "Website"
 msgstr ""
 
-#: data/ui/installed-view.ui:28 data/ui/window.ui:83
-msgid "Installed"
+#: data/ui/installed-view.ui:28
+msgid "My Extensions"
+msgstr ""
+
+#: data/ui/installed-view.ui:51 data/ui/installed-view.ui:99
+msgid "No Extensions"
 msgstr ""
 
 #: data/ui/installed-view.ui:76
@@ -103,52 +195,120 @@ msgstr ""
 msgid "Explore"
 msgstr ""
 
-#: data/ui/window.ui:108
+#: data/ui/window.ui:114
 msgid "Hide Unsupported"
 msgstr ""
 
-#: data/ui/window.ui:114
+#: data/ui/window.ui:118
 msgid "About Annex"
 msgstr ""
 
-#: src/exploreView.js:283 src/exploreView.js:307
+#: src/exploreView.js:348 src/exploreView.js:372
 msgid "No results"
 msgstr ""
 
-#: src/extensionView.js:101
-msgid "Save"
-msgstr ""
-
-#: src/extensionView.js:103 src/extensionView.js:446
-msgid "Cancel"
-msgstr ""
-
-#: src/extensionView.js:105
+#: src/extensionInstaller.js:44
 #, javascript-format
-msgid "Download v%d"
+msgid "Install “%s”?"
 msgstr ""
 
-#: src/extensionView.js:116
-msgid "Operation cancelled"
-msgstr ""
-
-#: src/extensionView.js:440
+#: src/extensionInstaller.js:75 src/extensionView.js:600
 msgid "Uninstall Extension"
 msgstr ""
 
-#: src/extensionView.js:441
+#: src/extensionInstaller.js:76 src/extensionView.js:601
 #, javascript-format
 msgid "Uninstall “%s”?"
 msgstr ""
 
-#: src/extensionView.js:447
+#: src/extensionInstaller.js:82 src/extensionView.js:607
 msgid "Uninstall"
 msgstr ""
 
-#: src/window.js:90
+#. TRANSLATORS: eg. "Compatible with GNOME 40.1"
+#: src/extensionInstaller.js:490
+#, javascript-format
+msgid "Compatible with GNOME %s"
+msgstr ""
+
+#: src/extensionInstaller.js:491
+msgid "Developed to support your desktop"
+msgstr ""
+
+#. TRANSLATORS: eg. "Incompatible with GNOME 40.1"
+#: src/extensionInstaller.js:495
+#, javascript-format
+msgid "Incompatible with GNOME %s"
+msgstr ""
+
+#: src/extensionInstaller.js:496
+msgid "The extension may have problems or not work"
+msgstr ""
+
+#: src/extensionInstaller.js:514
+msgid "Trusted Source"
+msgstr ""
+
+#: src/extensionInstaller.js:519
+msgid "Unverified Source"
+msgstr ""
+
+#: src/extensionInstaller.js:541 src/extensionInstaller.js:560
+#, javascript-format
+msgid "Version %d"
+msgstr ""
+
+#: src/extensionInstaller.js:545
+#, javascript-format
+msgid "Upgrade from v%s"
+msgstr ""
+
+#: src/extensionInstaller.js:550
+#, javascript-format
+msgid "Downgrade from v%s"
+msgstr ""
+
+#: src/extensionInstaller.js:555
+msgid "Already installed"
+msgstr ""
+
+#: src/extensionInstaller.js:561
+msgid "New extension"
+msgstr ""
+
+#: src/extensionInstaller.js:721
+msgid "Zip File"
+msgstr ""
+
+#: src/extensionInstaller.js:729
+msgid "Install Zip"
+msgstr ""
+
+#: src/extensionInstaller.js:740
+msgid "Operation cancelled"
+msgstr ""
+
+#: src/extensionView.js:110
+msgid "Incompatible"
+msgstr ""
+
+#: src/extensionView.js:116
+msgid "Downgrade"
+msgstr ""
+
+#: src/extensionView.js:128
+msgid "Upgrade"
+msgstr ""
+
+#: src/extensionView.js:233
+#, javascript-format
+msgid "Version %s"
+msgstr ""
+
+#: src/window.js:66
 msgid "translator-credits"
 msgstr ""
 
-#: src/window.js:92
+#: src/window.js:68
 msgid "Install GNOME Extensions"
 msgstr ""

@@ -7,6 +7,7 @@
 const {GLib, Gio, GObject, Gtk} = imports.gi;
 
 /* eslint-disable no-unused-vars */
+const ExtensionInstaller = imports.extensionInstaller;
 const {ExtensionView} = imports.extensionView;
 const {ExploreView} = imports.exploreView;
 const {InstalledView} = imports.installedView;
@@ -33,54 +34,29 @@ var AnnexWindow = GObject.registerClass({
             schema_id: 'ca.andyholmes.Annex',
         });
 
-        let action = this.settings.create_action('version-filter');
+        const action = this.settings.create_action('version-filter');
         this.add_action(action);
 
         // Actions
-        action = new Gio.SimpleAction({
-            name: 'about',
-            enabled: true,
-        });
-        action.connect('activate', this._onAboutActivated.bind(this));
-        this.add_action(action);
+        const actions = {
+            about: [this._onAboutActivated, null],
+            explore: [this._onExploreActivated, null],
+            open: [this._onOpenActivated, null],
+            previous: [this._onPreviousActivated, null],
+            search: [this._onSearchActivated, new GLib.VariantType('s')],
+            view: [this._onViewActivated, new GLib.VariantType('s')],
+        };
 
-        action = new Gio.SimpleAction({
-            name: 'browse',
-            enabled: true,
-            parameter_type: new GLib.VariantType('s'),
-        });
-        action.connect('activate', this._onBrowse.bind(this));
-        this.add_action(action);
-
-        action = new Gio.SimpleAction({
-            name: 'previous',
-            enabled: true,
-        });
-        action.connect('activate', this._onPrevious.bind(this));
-        this.add_action(action);
-    }
-
-    /*
-     * Simple Navigation
-     */
-    _onTransitionRunning(_stack, _pspec) {
-        const page = this._stack.visible_child_name;
-
-        // Update the buttons during the transition
-        if (this._stack.transition_running) {
-            this._previousButton.visible = page === 'view';
-            this._searchButton.visible = page === 'explore';
-
-        // Update the extension view after the transition
-        } else if (page !== 'view') {
-            this._extensionView.uuid = null;
-            this._previousPage = null;
+        for (const [name, entry] of Object.entries(actions)) {
+            const action = new Gio.SimpleAction({
+                name: name,
+                parameter_type: entry[1],
+            });
+            action.connect('activate', entry[0].bind(this));
+            this.add_action(action);
         }
     }
 
-    /*
-     * Actions
-     */
     _onAboutActivated(_action, _parameter) {
         if (this._about === undefined) {
             this._about = new Gtk.AboutDialog({
@@ -102,9 +78,9 @@ var AnnexWindow = GObject.registerClass({
         this._about.present();
     }
 
-    _onBrowse(_action, parameter) {
-        this._searchView._model.sort = parameter.unpack();
-        this._searchButton.active = true;
+    _onExploreActivated(_action, _parameter) {
+        this._searchButton.active = false;
+        this._stack.set_visible_child_name('explore');
     }
 
     _onExtensionSelected(_page, uuid) {
@@ -114,9 +90,33 @@ var AnnexWindow = GObject.registerClass({
         this._stack.visible_child_name = 'view';
     }
 
-    _onPrevious() {
+    async _onOpenActivated() {
+        let installer;
+
+        try {
+            installer = new ExtensionInstaller.Dialog({
+                application: this.application,
+                modal: true,
+                transient_for: this,
+            });
+
+            await installer.openFile();
+            installer.present();
+        } catch (e) {
+            debug(e);
+            installer.destroy();
+        }
+    }
+
+    _onPreviousActivated() {
         this._stack.visible_child_name = this._previousPage;
         this._previousPage = null;
+    }
+
+    _onSearchActivated(_action, parameter) {
+        debug();
+        this._exploreView.search = parameter.unpack();
+        this._searchButton.active = true;
     }
 
     _onSearchToggled(button, _pspec) {
@@ -125,6 +125,29 @@ var AnnexWindow = GObject.registerClass({
             this._exploreView.search_mode_enabled = true;
             this._previousPage = null;
         }
+    }
+
+    _onTransitionRunning(_stack, _pspec) {
+        const page = this._stack.visible_child_name;
+
+        // Update the buttons during the transition
+        if (this._stack.transition_running) {
+            this._previousButton.visible = page === 'view';
+            this._searchButton.visible = page === 'explore';
+
+        // Update the extension view after the transition
+        } else if (page !== 'view') {
+            this._extensionView.uuid = null;
+            this._previousPage = null;
+        }
+    }
+
+    _onViewActivated(_action, parameter) {
+        const uuid = parameter.unpack();
+        this._extensionView.uuid = uuid;
+
+        this._previousPage = this._stack.get_visible_child_name();
+        this._stack.set_visible_child_name('view');
     }
 });
 

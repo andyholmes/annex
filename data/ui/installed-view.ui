@@ -11,11 +11,11 @@
             <property name="scroll-to-focus">1</property>
             <child>
               <object class="GtkBox">
-                <property name="orientation">vertical</property>
                 <property name="margin-top">32</property>
                 <property name="margin-bottom">32</property>
                 <property name="margin-start">32</property>
                 <property name="margin-end">32</property>
+                <property name="orientation">vertical</property>
                 <property name="spacing">32</property>
 
                 <!-- User Extensions -->
@@ -25,7 +25,7 @@
                     <property name="spacing">18</property>
                     <child>
                       <object class="GtkLabel">
-                        <property name="label" translatable="yes">Installed</property>
+                        <property name="label" translatable="yes">My Extensions</property>
                         <property name="xalign">0.0</property>
                         <attributes>
                           <attribute name="weight" value="bold"/>
@@ -48,7 +48,7 @@
                                     swapped="no"/>
                             <child type="placeholder">
                               <object class="GtkLabel" id="userPlaceholder">
-                                <property name="label">No Extensions</property>
+                                <property name="label" translatable="yes">No Extensions</property>
                                 <property name="margin-top">18</property>
                                 <property name="margin-bottom">18</property>
                                 <attributes>
@@ -96,7 +96,7 @@
                                     swapped="no"/>
                             <child type="placeholder">
                               <object class="GtkLabel" id="systemPlaceholder">
-                                <property name="label">No Extensions</property>
+                                <property name="label" translatable="yes">No Extensions</property>
                                 <property name="margin-top">18</property>
                                 <property name="margin-bottom">18</property>
                                 <attributes>

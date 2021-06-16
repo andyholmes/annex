@@ -154,7 +154,7 @@
                       </object>
                     </child>
 
-                    <!-- Recently Updated -->
+                    <!-- New & Updated -->
                     <child>
                       <object class="GtkBox">
                         <property name="orientation">vertical</property>
@@ -163,7 +163,7 @@
                           <object class="GtkBox">
                             <child>
                               <object class="GtkLabel">
-                                <property name="label" translatable="yes">Recently Updated</property>
+                                <property name="label" translatable="yes">New &amp; Updated</property>
                                 <property name="hexpand">1</property>
                                 <property name="xalign">0.0</property>
                                 <attributes>

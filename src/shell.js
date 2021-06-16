@@ -1,22 +1,23 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // SPDX-FileCopyrightText: 2021 Andy Holmes <andrew.g.r.holmes@gmail.com>
 
-/* exported ExtensionType, ExtensionState, Extension, ExtensionManager */
+/* exported ExtensionType, ExtensionState, Extension, ExtensionManager,
+       extractExtension, loadExtension, releaseCompatible, versionCompatible */
 
-
+const ByteArray = imports.byteArray;
 const {GLib, Gio, GObject} = imports.gi;
 
+const {Exec, File} = imports.utils;
 
-/**
- * Enumeration of extension types.
- *
- * @readonly
- * @enum {string}
+
+/*
+ * Internal Constants
  */
-var ExtensionType = {
-    SYSTEM: 1,
-    USER: 2,
-};
+const EXTENSIONS_PATH = GLib.build_filenamev([GLib.get_user_data_dir(),
+    'gnome-shell', 'extensions']);
+const EXTENSION_UPDATES_PATH = GLib.build_filenamev([GLib.get_user_data_dir(),
+    'gnome-shell', 'extension-updates']);
+
 
 /**
  * Enumeration of extension states.
@@ -35,7 +36,7 @@ var ExtensionState = {
     OUT_OF_DATE: 4,
     /** The extension is downloading */
     DOWNLOADING: 5,
-    /** The extension is initialzed */
+    /** The extension is initialized */
     INITIALIZED: 6,
     /** The extension is not installed */
     UNINSTALLED: 99,
@@ -43,7 +44,166 @@ var ExtensionState = {
 
 
 /**
- * An object representing an installed extension.
+ * Enumeration of extension types.
+ *
+ * @readonly
+ * @enum {string}
+ */
+var ExtensionType = {
+    SYSTEM: 1,
+    USER: 2,
+};
+
+
+/**
+ * Load extension metadata from @dir
+ *
+ * @param {Gio.File} dir - the directory
+ * @param {Gio.Cancellable} [cancellable] - optional cancellable
+ * @return {Object} extension metadata
+ */
+async function loadExtension(dir, cancellable = null) {
+    if (typeof dir === 'string')
+        dir = Gio.File.new_for_path(dir);
+
+    // Check for `extension.js`
+    const extensionFile = dir.get_child('extension.js');
+
+    if (!extensionFile.query_exists(cancellable)) {
+        throw new Gio.IOErrorEnum({
+            code: Gio.IOErrorEnum.NOT_FOUND,
+            message: 'missing "extension.js"',
+        });
+    }
+
+    // Check for `metadata.json`
+    const metadataFile = dir.get_child('metadata.json');
+
+    if (!metadataFile.query_exists(cancellable)) {
+        throw new Gio.IOErrorEnum({
+            code: Gio.IOErrorEnum.NOT_FOUND,
+            message: 'missing "metadata.json"',
+        });
+    }
+
+    // Try to load and parse the `metadata.json`
+    const metadata = await new Promise((resolve, reject) => {
+        metadataFile.load_contents_async(cancellable, (_file, result) => {
+            try {
+                const contents = _file.load_contents_finish(result)[1];
+                const json = ByteArray.toString(contents);
+
+                resolve(JSON.parse(json));
+            } catch (e) {
+                reject(e);
+            }
+        });
+    });
+
+    // Minimum required properties
+    const required = ['uuid', 'name', 'description', 'shell-version'];
+
+    for (const name of required) {
+        if (!metadata.hasOwnProperty(name))
+            throw ReferenceError(`metadata.json: missing "${name}" property`);
+    }
+
+    // Add properties usually received over DBus
+    metadata.state = ExtensionType.DISABLED;
+    metadata.type = ExtensionType.USER;
+    metadata.path = dir.get_path();
+    metadata.error = '';
+    metadata.hasPrefs = dir.get_child('prefs.js').query_exists(null);
+    metadata.hasUpdate = false;
+    metadata.canChange = true;
+
+    return metadata;
+}
+
+
+/**
+ * Extract extension metadata from @zip.
+ *
+ * If @dest is not given the extension will be extracted to a temporary
+ * directory. The resulting metadata key `path` will always point to @dest.
+ *
+ * @param {Gio.File} zip - the extension ZIP file
+ * @param {Gio.File} [dest] - the destination directory, defaults to in-memory
+ * @param {Gio.Cancellable} [cancellable] - optional cancellable
+ * @return {Object} extension metadata
+ */
+async function extractExtension(zip, dest = null, cancellable = null) {
+    if (dest === null) {
+        dest = GLib.Dir.make_tmp('XXXXXX.annex');
+        dest = Gio.File.new_for_path(dest);
+    }
+
+    await Exec.communicate([
+        GLib.find_program_in_path('unzip'),
+        '-u',                  // Update
+        '-o',                  // Overwrite
+        '-d', dest.get_path(), // Target directory
+        zip.get_path(),        // Source archive
+    ], null, cancellable);
+
+    return loadExtension(dest, cancellable);
+}
+
+
+/**
+ * Returns %true if @version1 is compatible with @version2.
+ *
+ * @param {string} version1 - a GNOME Shell semantic version
+ * @param {string} version2 - a GNOME Shell semantic version
+ * @return {boolean} %true if compatible
+ */
+function versionCompatible(version1, version2) {
+    const [major1, minor1] = version1.split('.');
+    const [major2, minor2] = version2.split('.');
+
+    if (major1 !== major2)
+        return false;
+
+    if (minor1 !== minor2 && major1 < 40)
+        return false;
+
+    return true;
+}
+
+
+/**
+ * Returns %true if @release is compatible with @shellVersion.
+ *
+ * @release may be really any Object which has a `shell_version` field that is
+ * a list of GNOME Shell versions as strings.
+ *
+ * @param {Object} release - an Object with a `shell_version` property
+ * @param {string[]} release.shell_version - a list of GNOME Shell versions
+ * @param {string} [shellVersion] - a GNOME Shell version or "all"
+ * @return {boolean} %true if compatible
+ */
+function releaseCompatible(release, shellVersion = 'all') {
+    if (shellVersion === 'all')
+        return true;
+
+    const versions = release.shell_version.sort((a, b) => {
+        return Math.ceil(parseFloat(b) - parseFloat(a));
+    });
+
+    for (const version of versions) {
+        if (versionCompatible(shellVersion, version))
+            return true;
+    }
+
+    return false;
+}
+
+
+/**
+ * An object representing a GNOME Shell extension.
+ *
+ * Usually an instance of this class represents an installed extension, but it
+ * may also have been created from a Zip file or folder.
  */
 var Extension = GObject.registerClass({
     GTypeName: 'AnnexShellExtension',
@@ -79,7 +239,7 @@ var Extension = GObject.registerClass({
         'has-update': GObject.ParamSpec.boolean(
             'has-update',
             'Has Update',
-            'Whether the extension has an update available',
+            'Whether the extension has an update pending',
             GObject.ParamFlags.READWRITE,
             false
         ),
@@ -140,19 +300,45 @@ var Extension = GObject.registerClass({
     _init(params = {}) {
         super._init();
 
-        this.update(params);
+        this.updateState(params);
+    }
+
+    get shell_version() {
+        if (this['shell-version'] === undefined)
+            this['shell-version'] = [];
+
+        return this['shell-version'];
     }
 
     /**
-     * Update the extension with @properties.
+     * Check if the extension supports @shellVersion.
+     *
+     * @param {string} shellVersion - a GNOME Shell version string
+     * @return {boolean} %true if supported
+     */
+    checkVersion(shellVersion) {
+        const versions = this.shell_version.sort((a, b) => {
+            return Math.ceil(parseFloat(b) - parseFloat(a));
+        });
+
+        for (const version of versions) {
+            if (versionCompatible(shellVersion, version))
+                return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Update the extension state with @properties.
      *
      * @param {Obeject} properties - Extension properties
      */
-    update(properties = {}) {
+    updateState(properties = {}) {
         try {
             Object.assign(this, properties);
         } catch (e) {
-            logError(e);
+            warning(e);
         }
     }
 });
@@ -181,12 +367,14 @@ var ExtensionManager = GObject.registerClass({
     },
     Signals: {
         'extension-added': {
+            flags: GObject.SignalFlags.RUN_FIRST,
             param_types: [
                 GObject.TYPE_STRING, // Extension UUID
                 Extension.$gtype,    // Extension Info
             ],
         },
         'extension-removed': {
+            flags: GObject.SignalFlags.RUN_FIRST,
             param_types: [
                 GObject.TYPE_STRING, // Extension UUID
                 Extension.$gtype,    // Extension Info
@@ -214,42 +402,70 @@ var ExtensionManager = GObject.registerClass({
         this._extensions = new Map();
     }
 
+    on_extension_added(uuid, extension) {
+        debug(uuid);
+        this._extensions.set(extension.uuid, extension);
+    }
+
+    on_extension_removed(uuid, extension) {
+        debug(uuid);
+        this._extensions.delete(extension.uuid);
+    }
+
     static getDefault() {
         if (this.__default === undefined) {
             this.__default = new ExtensionManager();
             this.__default.init(null);
-            this.__default._load();
+            this.__default.refresh();
         }
 
         return this.__default;
     }
 
-    async _load() {
-        try {
-            const extensions = await this._call('ListExtensions');
+    /*
+     * GDBusProxy
+     */
+    _onNameOwnerChanged() {
+        this.refresh();
+    }
 
-            for (const [uuid, extension] of this._extensions) {
-                if (extensions.hasOwnProperty(uuid))
-                    continue;
+    _onPropertiesChanged(proxy, changed, _invalidated) {
+        const names = changed.deepUnpack();
 
-                this._extensions.delete(uuid);
+        if (names.hasOwnProperty('ShellVersion'))
+            this.notify('shell-version');
+
+        if (names.hasOwnProperty('UserExtensionsEnabled'))
+            this.notify('user-extensions-enabled');
+    }
+
+    _onSignal(proxy, senderName, signalName, parameters) {
+        const unpacked = parameters.recursiveUnpack();
+
+        if (signalName === 'ExtensionStateChanged') {
+            const [uuid, properties] = unpacked;
+            let extension = this._extensions.get(uuid);
+
+            if (extension === undefined) {
+                extension = new Extension(properties);
+                this.emit('extension-added', extension.uuid, extension);
+            } else {
+                extension.updateState(properties);
+            }
+
+            if (extension.state === ExtensionState.UNINSTALLED)
                 this.emit('extension-removed', extension.uuid, extension);
+        }
+
+        if (signalName === 'ExtensionStatusChanged') {
+            const [uuid, state, message_] = unpacked;
+
+            if (state === ExtensionState.UNINSTALLED) {
+                const extension = this._extensions.get(uuid);
+
+                if (extension !== undefined)
+                    this.emit('extension-removed', extension.uuid, extension);
             }
-
-            for (const [uuid, properties] of Object.entries(extensions)) {
-                let extension = this._extensions.get(uuid);
-
-                if (extension === undefined) {
-                    extension = new Extension(properties);
-
-                    this._extensions.set(extension.uuid, extension);
-                    this.emit('extension-added', extension.uuid, extension);
-                } else {
-                    extension.update(properties);
-                }
-            }
-        } catch (e) {
-            logError(e);
         }
     }
 
@@ -310,56 +526,39 @@ var ExtensionManager = GObject.registerClass({
         );
     }
 
-    _onNameOwnerChanged() {
-        this._load();
-    }
+    /*
+     * Internal methods
+     */
+    async _loadDirectory(path, cancellable = null) {
+        const results = [];
+        const dir = Gio.File.new_for_path(path);
 
-    _onPropertiesChanged(proxy, changed, _invalidated) {
-        const names = changed.deepUnpack();
+        const iter = dir.enumerate_children('standard::name,standard::type',
+            Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, cancellable);
 
-        if (names.hasOwnProperty('ShellVersion'))
-            this.notify('shell-version');
+        let info;
 
-        if (names.hasOwnProperty('UserExtensionsEnabled'))
-            this.notify('user-extensions-enabled');
-    }
+        while ((info = iter.next_file(cancellable))) {
+            try {
+                if (info.get_file_type() !== Gio.FileType.DIRECTORY)
+                    continue;
 
-    _onSignal(proxy, senderName, signalName, parameters) {
-        const unpacked = parameters.recursiveUnpack();
+                const subdir = iter.get_child(info);
+                const properties = await loadExtension(subdir);
 
-        if (signalName === 'ExtensionStateChanged') {
-            const [uuid, properties] = unpacked;
-            let extension = this._extensions.get(uuid);
-
-            if (extension === undefined) {
-                extension = new Extension(properties);
-
-                this._extensions.set(extension.uuid, extension);
-                this.emit('extension-added', extension.uuid, extension);
-            } else {
-                extension.update(properties);
-            }
-
-            if (extension.state === ExtensionState.UNINSTALLED) {
-                this._extensions.delete(uuid);
-                this.emit('extension-removed', extension.uuid, extension);
+                if (properties.uuid === subdir.get_basename())
+                    results.push(properties);
+            } catch (e) {
+                warning(e, info.get_name());
             }
         }
 
-        if (signalName === 'ExtensionStatusChanged') {
-            const [uuid, state, message_] = unpacked;
-
-            if (state === ExtensionState.UNINSTALLED) {
-                const extension = this._extensions.get(uuid);
-
-                if (extension !== undefined) {
-                    this._extensions.delete(uuid);
-                    this.emit('extension-removed', extension.uuid, extension);
-                }
-            }
-        }
+        return results;
     }
 
+    /*
+     * org.gnome.Shell.Extensions
+     */
     get shell_version() {
         return this._get('ShellVersion', 'all');
     }
@@ -370,51 +569,6 @@ var ExtensionManager = GObject.registerClass({
 
     set user_extensions_enabled(enabled) {
         this._set('UserExtensionsEnabled', GLib.Variant.new_boolean(enabled));
-    }
-
-    getExtensions() {
-        return this._extensions.values();
-    }
-
-    async lookupExtension(uuid) {
-        let extension = this._extensions.get(uuid);
-
-        if (extension === undefined) {
-            try {
-                const properties = await this._call('GetExtensionInfo',
-                    new GLib.Variant('(s)', [uuid]));
-
-                if (properties.hasOwnProperty('uuid')) {
-                    extension = new Extension(properties);
-
-                    this._extensions.set(uuid, extension);
-                    this.emit('extension-added', extension.uuid, extension);
-                }
-            } catch (e) {
-                logError(e);
-            }
-        }
-
-        return extension || null;
-    }
-
-    /**
-     * Check for updates.
-     *
-     * @param {Gio.Cancellable} [cancellable] - optional cancellable
-     * @return {Promise<boolean>} success boolean
-     */
-    checkForUpdates(cancellable = null) {
-        return this._call('CheckForUpdates', null, cancellable);
-    }
-
-    /**
-     * List installed extensions.
-     *
-     * @return {Shell.Extension[]} a list of Shell.Extension objects
-     */
-    listExtensions() {
-        return this._extensions.values();
     }
 
     /**
@@ -442,27 +596,95 @@ var ExtensionManager = GObject.registerClass({
     }
 
     /**
-     * Get the extension for @uuid.
-     *
-     * @param {string} uuid - an extension UUID
-     * @param {Gio.Cancellable} [cancellable] - optional cancellable
-     * @return {Promise<Object>} extension properties
-     */
-    getExtensionInfo(uuid, cancellable = null) {
-        return this._call('GetExtensionInfo', new GLib.Variant('(s)', [uuid]),
-            cancellable);
-    }
-
-    /**
      * Install an extension from extensions.gnome.org.
      *
      * @param {string} uuid - an extension UUID
      * @param {Gio.Cancellable} [cancellable] - optional cancellable
      * @return {Promise<string>} result message
      */
-    installRemoteExtension(uuid, cancellable = null) {
+    installExtension(uuid, cancellable = null) {
         return this._call('InstallRemoteExtension',
             new GLib.Variant('(s)', [uuid]), cancellable);
+    }
+
+    /**
+     * Install an extension from @zip. If the extension @uuid is already
+     * installed, @zip will be queued as an update for the next session.
+     *
+     * @param {Gio.File} zip - an extension ZIP
+     * @param {Gio.Cancellable} [cancellable] - optional cancellable
+     * @return {Promise<string>} result message
+     */
+    async installExtensionFile(zip, cancellable = null) {
+        // Extract and load the ZIP
+        const info = await extractExtension(zip, null, cancellable);
+        const src = Gio.File.new_for_path(info.path);
+
+        // If already installed, stage the ZIP as an update
+        let path = GLib.build_filenamev([EXTENSIONS_PATH, info.uuid]);
+
+        if (this._extensions.has(info.uuid))
+            path = GLib.build_filenamev([EXTENSION_UPDATES_PATH, info.uuid]);
+
+        // Ensure we have a clean directory
+        const dest = Gio.File.new_for_path(path);
+
+        if (dest.query_exists(cancellable))
+            await File.recursiveDelete(dest, cancellable);
+
+        dest.make_directory_with_parents(cancellable);
+
+        // Copy to the target
+        await File.recursiveMove(src, dest, cancellable);
+
+        this.refresh();
+    }
+
+    /**
+     * Lookup an extension for @uuid.
+     *
+     * @param {string} uuid - an extension UUID
+     * @return {Shell.Extension|null} an extension or %null if not found
+     */
+    lookup(uuid) {
+        const extension = this._extensions.get(uuid);
+
+        if (extension instanceof Extension)
+            return extension;
+
+        return null;
+    }
+
+    /**
+     * Lookup a pending update for @uuid.
+     *
+     * @param {string} uuid - an extension UUID
+     * @param {Gio.Cancellable} [cancellable] - optional cancellable
+     * @return {Shell.Extension|null} an extension or %null if not found
+     */
+    async lookupPending(uuid, cancellable = null) {
+        let extension = null;
+
+        try {
+            const path = GLib.build_filenamev([EXTENSION_UPDATES_PATH, uuid]);
+            const properties = await loadExtension(path, cancellable);
+
+            if (properties.uuid === uuid)
+                extension = new Extension(properties);
+        } catch (e) {
+            debug(e);
+        }
+
+        return extension;
+    }
+
+    /**
+     * List installed extensions.
+     *
+     * @return {Shell.Extension[]} a list of Shell.Extension objects
+     */
+    listExtensions() {
+        return this._extensions.values();
     }
 
     /**
@@ -472,9 +694,32 @@ var ExtensionManager = GObject.registerClass({
      * @param {Gio.Cancellable} [cancellable] - optional cancellable
      * @return {Promise<string>} result
      */
-    uninstallExtension(uuid, cancellable = null) {
-        return this._call('UninstallExtension', new GLib.Variant('(s)', [uuid]),
-            cancellable);
+    async uninstallExtension(uuid, cancellable = null) {
+        // Uninstall the extension
+        try {
+            await this._call('UninstallExtension',
+                new GLib.Variant('(s)', [uuid]), cancellable);
+        } catch (e) {
+            warning(e, uuid);
+        }
+
+        // Remove any unmanaged files
+        const tasks = [];
+
+        for (const basepath of [EXTENSIONS_PATH, EXTENSION_UPDATES_PATH]) {
+            const path = GLib.build_filenamev([basepath, uuid]);
+            const task = File.recursiveDelete(path).then(warning);
+
+            tasks.push(task);
+        }
+
+        await Promise.all(tasks);
+
+        // Ensure we stop managing the extension object
+        const extension = this._extensions.get(uuid);
+
+        if (extension !== undefined)
+            this.emit('extension-removed', extension.uuid, extension);
     }
 
     /**
@@ -488,4 +733,71 @@ var ExtensionManager = GObject.registerClass({
         return this._call('LaunchExtensionPrefs',
             new GLib.Variant('(s)', [uuid]), cancellable);
     }
+
+    /**
+     * Rescan the DBus service, user extensions directory and pending updates
+     * directory for changes.
+     */
+    async refresh() {
+        const scanned = {};
+
+        // Query the DBus service
+        try {
+            const results = await this._call('ListExtensions');
+
+            for (const properties of Object.values(results))
+                scanned[properties.uuid] = properties;
+        } catch (e) {
+            warning(e);
+        }
+
+        // Check the user directory and mark extensions unknown to the DBus
+        // service as pending updates.
+        try {
+            const results = await this._loadDirectory(EXTENSIONS_PATH);
+
+            for (const properties of results) {
+                if (!scanned.hasOwnProperty(properties.uuid)) {
+                    scanned[properties.uuid] = properties;
+                    scanned[properties.uuid].hasUpdate = true;
+                }
+            }
+        } catch (e) {
+            warning(e);
+        }
+
+        // Check the updates directory for untracked pending updates
+        try {
+            const results = await this._loadDirectory(EXTENSION_UPDATES_PATH);
+
+            for (const properties of results) {
+                const extension = scanned[properties.uuid];
+
+                if (extension !== undefined)
+                    extension.has_update = true;
+            }
+        } catch (e) {
+            warning(e);
+        }
+
+        // Notify removals & additions
+        for (const [uuid, extension] of this._extensions) {
+            if (scanned.hasOwnProperty(uuid))
+                continue;
+
+            this.emit('extension-removed', extension.uuid, extension);
+        }
+
+        for (const [uuid, properties] of Object.entries(scanned)) {
+            let extension = this._extensions.get(uuid);
+
+            if (extension === undefined) {
+                extension = new Extension(properties);
+                this.emit('extension-added', extension.uuid, extension);
+            } else {
+                extension.updateState(properties);
+            }
+        }
+    }
 });
+

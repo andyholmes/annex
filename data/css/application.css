@@ -1,11 +1,4 @@
 
-.searchbar {
-  /* padding: 4px; */
-  /* border-spacing: 4px; */
-  /* background-color: #f6f5f4; */
-  /* background-color: #eae7e5; */
-}
-
 .explore-view-item {
 }
 
@@ -15,4 +8,38 @@
 
 .explore-view-item:active {
   box-shadow: inset 0 2px 2px -2px rgba(0, 0, 0, 0.2);
+}
+
+.installer-row {
+}
+
+.installer-row-icon {
+  padding: 12px;
+  border-radius: 20px;
+  background-color: @theme_selected_bg_color;
+  color: @theme_selected_fg_color;
+  opacity: 0.8;
+}
+
+/*
+ * Useful classes
+ */
+.selected {
+  background-color: @theme_selected_bg_color;
+  color: @theme_selected_fg_color;
+}
+
+.success {
+  background-color: @success_color;
+  color: @theme_selected_fg_color;
+}
+
+.warning {
+  background-color: @warning_color;
+  color: @theme_selected_fg_color;
+}
+
+.error {
+  background-color: @error_color;
+  color: @theme_selected_fg_color;
 }
