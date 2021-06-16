@@ -78,6 +78,10 @@
                                   bind-source="exploreButton"
                                   bind-property="sensitive"
                                   bind-flags="sync-create"/>
+                        <signal name="clicked"
+                                handler="_onCancelActivated"
+                                object="AnnexExtensionInstallerWidget"
+                                swapped="no"/>
                         <style>
                           <class name="circular"/>
                           <class name="suggested-action"/>

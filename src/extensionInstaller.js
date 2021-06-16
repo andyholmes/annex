@@ -554,6 +554,7 @@ var Widget = GObject.registerClass({
                 icon_name = 'object-select-symbolic';
                 description = _('Already installed');
                 css_classes = ['installer-row-icon'];
+                installable = false;
             }
         } else if (this._proposed) {
             icon_name = 'list-add-symbolic';
@@ -568,7 +569,7 @@ var Widget = GObject.registerClass({
         this._versionTitle.label = title;
         this._versionDescription.label = description;
 
-        this._actions.install.enabled = installable;
+        this._actions.install.enabled = installable && this.page === 'review';
     }
 
     _redraw() {
@@ -588,10 +589,10 @@ var Widget = GObject.registerClass({
         }
 
         // Redraw the review page
+        this._onPageChanged();
         this._redrawShell();
         this._redrawSource();
         this._redrawVersion();
-        this._onPageChanged();
     }
 
     async _refresh() {
@@ -607,6 +608,45 @@ var Widget = GObject.registerClass({
         } catch (e) {
             debug(e);
         }
+    }
+
+    /**
+     * Open a dialog for selecting a file.
+     */
+    async openFile() {
+        this.file = await new Promise((resolve, reject) => {
+            const application = Gio.Application.get_default();
+            const parent = application ? application.get_active_window() : null;
+
+            const filter = new Gtk.FileFilter({
+                name: _('Zip File'),
+            });
+            filter.add_mime_type('application/zip');
+            filter.add_pattern('*.zip');
+
+            const dialog = new Gtk.FileChooserNative({
+                action: Gtk.FileChooserAction.OPEN,
+                filter: filter,
+                title: _('Install Zip…'),
+                modal: parent instanceof Gtk.Window,
+                transient_for: parent,
+            });
+
+            dialog.connect('response', (_dialog, response_id) => {
+                if (response_id === Gtk.ResponseType.ACCEPT) {
+                    resolve(_dialog.get_file());
+                } else {
+                    const error = new Gio.IOErrorEnum({
+                        code: Gio.IOErrorEnum.CANCELLED,
+                        message: _('Operation cancelled'),
+                    });
+
+                    reject(error);
+                }
+            });
+
+            dialog.show();
+        });
     }
 
     /**
@@ -636,7 +676,7 @@ var Widget = GObject.registerClass({
 
         this._setProgress(1.0);
         this._stack.visible_child_name = 'open';
-        this._viewButton.action_target = null;
+        this._viewButton.action_target = GLib.Variant.new_string('');
     }
 
     /**
@@ -704,48 +744,16 @@ var Dialog = GObject.registerClass({
     _onPreviousActivated(_action, _parameter) {
         // Back out to the extension page, before falling back to the start page
         if (this.file === null && this.uuid === null)
-            this._installerWidget._stack.set_visible_child_name('open');
+            this._installerWidget.page = 'open';
         else
-            this._installerWidget._stack.set_visible_child_name('review');
+            this._installerWidget.page = 'review';
     }
 
     /**
      * Open a dialog for selecting a file.
      */
-    async openFile() {
-        this.file = await new Promise((resolve, reject) => {
-            const application = Gio.Application.get_default();
-            const parent = application ? application.get_active_window() : null;
-
-            const filter = new Gtk.FileFilter({
-                name: _('Zip File'),
-            });
-            filter.add_mime_type('application/zip');
-            filter.add_pattern('*.zip');
-
-            const dialog = new Gtk.FileChooserNative({
-                action: Gtk.FileChooserAction.OPEN,
-                filter: filter,
-                title: _('Install Zip'),
-                modal: parent instanceof Gtk.Window,
-                transient_for: parent,
-            });
-
-            dialog.connect('response', (_dialog, response_id) => {
-                if (response_id === Gtk.ResponseType.ACCEPT) {
-                    resolve(_dialog.get_file());
-                } else {
-                    const error = new Gio.IOErrorEnum({
-                        code: Gio.IOErrorEnum.CANCELLED,
-                        message: _('Operation cancelled'),
-                    });
-
-                    reject(error);
-                }
-            });
-
-            dialog.show();
-        });
+    openFile() {
+        return this._installerWidget.openFile();
     }
 });
 

@@ -99,37 +99,33 @@ const VersionRow = GObject.registerClass({
     set status(status) {
         switch (status) {
             case Ego.UpdateType.NONE:
-                this.activatable = false;
                 this._statusIcon.icon_name = 'object-select-symbolic';
                 this._statusIcon.tooltip_text = _('Installed');
                 break;
 
             case Ego.UpdateType.BLACKLIST:
-                this.activatable = true;
                 this._statusIcon.icon_name = 'dialog-warning-symbolic';
                 this._statusIcon.tooltip_text = _('Incompatible');
                 break;
 
             case Ego.UpdateType.DOWNGRADE:
-                this.activatable = true;
                 this._statusIcon.icon_name = 'pan-down-symbolic';
                 this._statusIcon.tooltip_text = _('Downgrade');
                 break;
 
             case Ego.UpdateType.NEW:
-                this.activatable = true;
                 this._statusIcon.icon_name = 'list-add-symbolic';
                 this._statusIcon.tooltip_text = _('Install');
                 break;
 
             case Ego.UpdateType.UPGRADE:
-                this.activatable = true;
                 this._statusIcon.icon_name = 'pan-up-symbolic';
                 this._statusIcon.tooltip_text = _('Upgrade');
                 break;
 
             default:
-                break;
+                this._statusIcon.icon_name = null;
+                this._statusIcon.tooltip_text = null;
         }
 
         this._status = status;
@@ -310,9 +306,6 @@ const VersionDialog = GObject.registerClass({
             if (this._extension === null)
                 this._extension = await manager.lookup(this.info.uuid);
         }
-
-        if (this._extension)
-            log(this._extension.name + ' v' + this._extension.version);
 
         this._redraw();
     }
