@@ -478,33 +478,15 @@ var Widget = GObject.registerClass({
      * UI
      */
     _redrawShell() {
-        const manager = Shell.ExtensionManager.getDefault();
-        const shellVersion = manager.shell_version;
         let title = null;
         let description = null;
         let css_classes = ['installer-row-icon'];
 
         if (this._proposed) {
-            const [shellMajor, shellMinor] = shellVersion.split('.');
-            const versions = this._proposed.shell_version.sort((a, b) => {
-                return Math.ceil(parseFloat(b) - parseFloat(a));
-            });
+            const manager = Shell.ExtensionManager.getDefault();
+            const shellVersion = manager.shell_version;
 
-            let selected = null;
-
-            for (const version of versions) {
-                const [major, minor] = version.split('.');
-
-                if (shellMajor !== major)
-                    continue;
-
-                if (shellMajor >= 40 || shellMinor === minor) {
-                    selected = version;
-                    break;
-                }
-            }
-
-            if (selected) {
+            if (Shell.releaseCompatible(this._proposed, shellVersion)) {
                 // TRANSLATORS: eg. "Compatible with GNOME 40.1"
                 title = _('Compatible with GNOME %s').format(shellVersion);
                 description = _('Developed to support your desktop');

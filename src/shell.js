@@ -151,20 +151,23 @@ async function extractExtension(zip, dest = null, cancellable = null) {
 
 
 /**
- * Returns %true if @version1 is compatible with @version2.
+ * Returns %true if @version is compatible with @shellVersion.
  *
- * @param {string} version1 - a GNOME Shell semantic version
- * @param {string} version2 - a GNOME Shell semantic version
+ * @param {string} version - an extension's supported GNOME Shell version
+ * @param {string} [shellVersion] - a GNOME Shell version or "all"
  * @return {boolean} %true if compatible
  */
-function versionCompatible(version1, version2) {
-    const [major1, minor1] = version1.split('.');
-    const [major2, minor2] = version2.split('.');
+function versionCompatible(version, shellVersion = 'all') {
+    if (shellVersion === 'all')
+        return true;
 
-    if (major1 !== major2)
+    const [major, minor] = version.split('.');
+    const [shellMajor, shellMinor] = shellVersion.split('.');
+
+    if (shellMajor !== major)
         return false;
 
-    if (minor1 !== minor2 && major1 < 40)
+    if (shellMinor !== minor && shellMajor < 40)
         return false;
 
     return true;
@@ -175,7 +178,7 @@ function versionCompatible(version1, version2) {
  * Returns %true if @release is compatible with @shellVersion.
  *
  * @release may be really any Object which has a `shell_version` field that is
- * a list of GNOME Shell versions as strings.
+ * a list of GNOME Shell versions in string form.
  *
  * @param {Object} release - an Object with a `shell_version` property
  * @param {string[]} release.shell_version - a list of GNOME Shell versions
@@ -186,12 +189,14 @@ function releaseCompatible(release, shellVersion = 'all') {
     if (shellVersion === 'all')
         return true;
 
+    // Sort the haystack to check the releases from newest to oldest
     const versions = release.shell_version.sort((a, b) => {
         return Math.ceil(parseFloat(b) - parseFloat(a));
     });
 
+    // Return %true for the first compatible version
     for (const version of versions) {
-        if (versionCompatible(shellVersion, version))
+        if (versionCompatible(version, shellVersion))
             return true;
     }
 
