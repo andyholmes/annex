@@ -134,9 +134,10 @@ var ExtensionInfo = GObject.registerClass({
     }
 
     get creator_markup() {
-        const uri = `${BASE_URI}/accounts/profile/${this.creator}`;
+        if (this.creator === null)
+            return null;
 
-        return `<a href="${uri}">${this.creator}</a>`;
+        return `<a href="${this.creator_url}">${this.creator}</a>`;
     }
 
     get creator_url() {

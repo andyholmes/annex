@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: annex\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-15 19:02-0700\n"
+"POT-Creation-Date: 2021-06-16 18:01-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -30,6 +30,7 @@ msgid "gnome;shell;extension;extensions;"
 msgstr ""
 
 #: data/ca.andyholmes.Annex.desktop.in.in:20 data/ui/window.ui:108
+#: src/extensionInstaller.js:649
 msgid "Install Zip…"
 msgstr ""
 
@@ -75,7 +76,8 @@ msgstr ""
 msgid "New & Updated"
 msgstr ""
 
-#: data/ui/extension-installer-dialog.ui:6 src/extensionInstaller.js:43
+#: data/ui/extension-installer-dialog.ui:6
+#: data/ui/extension-installer-widget.ui:103 src/extensionInstaller.js:43
 msgid "Install Extension"
 msgstr ""
 
@@ -84,57 +86,73 @@ msgid "Previous"
 msgstr ""
 
 #: data/ui/extension-installer-dialog.ui:28
-#: data/ui/extension-installer-widget.ui:405 src/extensionInstaller.js:49
-#: src/extensionInstaller.js:81 src/extensionView.js:606
+#: data/ui/extension-installer-widget.ui:412 src/extensionInstaller.js:49
+#: src/extensionInstaller.js:81 src/extensionView.js:593
 msgid "Cancel"
 msgstr ""
 
 #: data/ui/extension-installer-dialog.ui:38
 #: data/ui/extension-version-dialog.ui:44 data/ui/extension-view.ui:74
-#: src/extensionInstaller.js:50 src/extensionView.js:122
+#: src/extensionInstaller.js:50 src/extensionView.js:113
 msgid "Install"
 msgstr ""
 
-#: data/ui/extension-installer-widget.ui:44
+#: data/ui/extension-installer-widget.ui:18
+msgid "Open Extension"
+msgstr ""
+
+#: data/ui/extension-installer-widget.ui:45
 msgid "Open a file"
 msgstr ""
 
-#: data/ui/extension-installer-widget.ui:63
+#: data/ui/extension-installer-widget.ui:64
 msgid "Open"
 msgstr ""
 
-#: data/ui/extension-installer-widget.ui:76
+#: data/ui/extension-installer-widget.ui:77
 msgid "Store"
 msgstr ""
 
-#: data/ui/extension-installer-widget.ui:465
-msgid "Installation will complete at next login"
+#: data/ui/extension-installer-widget.ui:357
+msgid "Installing"
 msgstr ""
 
-#: data/ui/extension-installer-widget.ui:480
+#: data/ui/extension-installer-widget.ui:433
+msgid "Installation Complete"
+msgstr ""
+
+#: data/ui/extension-installer-widget.ui:473
+msgid "The extension will be available at next login"
+msgstr ""
+
+#: data/ui/extension-installer-widget.ui:488
 msgid "Close"
 msgstr ""
 
-#: data/ui/extension-installer-widget.ui:494
+#: data/ui/extension-installer-widget.ui:502
 msgid "View in Store"
 msgstr ""
 
-#: data/ui/extension-installer-widget.ui:540
+#: data/ui/extension-installer-widget.ui:528
+msgid "Error"
+msgstr ""
+
+#: data/ui/extension-installer-widget.ui:549
 msgid "Something’s gone wrong"
 msgstr ""
 
-#: data/ui/extension-installer-widget.ui:551
+#: data/ui/extension-installer-widget.ui:560
 msgid ""
 "We’re very sorry, but there’s been a problem opening the extension. We "
 "recommend that you obtain a new copy of the file."
 msgstr ""
 
-#: data/ui/extension-installer-widget.ui:565
+#: data/ui/extension-installer-widget.ui:574
 msgid "Details"
 msgstr ""
 
 #: data/ui/extension-version-dialog.ui:26 data/ui/extension-view.ui:249
-#: src/extensionView.js:225 src/extensionView.js:229
+#: src/extensionView.js:216 src/extensionView.js:220
 msgid "Versions"
 msgstr ""
 
@@ -147,7 +165,7 @@ msgid "No Versions"
 msgstr ""
 
 #: data/ui/extension-version-row.ui:37 data/ui/window.ui:83
-#: src/extensionView.js:104
+#: src/extensionView.js:98
 msgid "Installed"
 msgstr ""
 
@@ -212,95 +230,95 @@ msgstr ""
 msgid "Install “%s”?"
 msgstr ""
 
-#: src/extensionInstaller.js:75 src/extensionView.js:600
+#: src/extensionInstaller.js:75 src/extensionView.js:587
 msgid "Uninstall Extension"
 msgstr ""
 
-#: src/extensionInstaller.js:76 src/extensionView.js:601
+#: src/extensionInstaller.js:76 src/extensionView.js:588
 #, javascript-format
 msgid "Uninstall “%s”?"
 msgstr ""
 
-#: src/extensionInstaller.js:82 src/extensionView.js:607
+#: src/extensionInstaller.js:82 src/extensionView.js:594
 msgid "Uninstall"
 msgstr ""
 
 #. TRANSLATORS: eg. "Compatible with GNOME 40.1"
-#: src/extensionInstaller.js:490
+#: src/extensionInstaller.js:509
 #, javascript-format
 msgid "Compatible with GNOME %s"
 msgstr ""
 
-#: src/extensionInstaller.js:491
+#: src/extensionInstaller.js:510
 msgid "Developed to support your desktop"
 msgstr ""
 
 #. TRANSLATORS: eg. "Incompatible with GNOME 40.1"
-#: src/extensionInstaller.js:495
+#: src/extensionInstaller.js:514
 #, javascript-format
 msgid "Incompatible with GNOME %s"
 msgstr ""
 
-#: src/extensionInstaller.js:496
+#: src/extensionInstaller.js:515
 msgid "The extension may have problems or not work"
 msgstr ""
 
-#: src/extensionInstaller.js:514
+#: src/extensionInstaller.js:533
 msgid "Trusted Source"
 msgstr ""
 
-#: src/extensionInstaller.js:519
+#: src/extensionInstaller.js:538
 msgid "Unverified Source"
 msgstr ""
 
-#: src/extensionInstaller.js:541 src/extensionInstaller.js:560
+#: src/extensionInstaller.js:560 src/extensionInstaller.js:580
 #, javascript-format
 msgid "Version %d"
 msgstr ""
 
-#: src/extensionInstaller.js:545
+#: src/extensionInstaller.js:564
 #, javascript-format
 msgid "Upgrade from v%s"
 msgstr ""
 
-#: src/extensionInstaller.js:550
+#: src/extensionInstaller.js:569
 #, javascript-format
 msgid "Downgrade from v%s"
 msgstr ""
 
-#: src/extensionInstaller.js:555
+#: src/extensionInstaller.js:574
 msgid "Already installed"
 msgstr ""
 
-#: src/extensionInstaller.js:561
+#: src/extensionInstaller.js:581
 msgid "New extension"
 msgstr ""
 
-#: src/extensionInstaller.js:721
+#: src/extensionInstaller.js:606 src/extensionView.js:524
+msgid "Unknown Developer"
+msgstr ""
+
+#: src/extensionInstaller.js:641
 msgid "Zip File"
 msgstr ""
 
-#: src/extensionInstaller.js:729
-msgid "Install Zip"
-msgstr ""
-
-#: src/extensionInstaller.js:740
+#: src/extensionInstaller.js:660
 msgid "Operation cancelled"
 msgstr ""
 
-#: src/extensionView.js:110
+#: src/extensionView.js:103
 msgid "Incompatible"
 msgstr ""
 
-#: src/extensionView.js:116
+#: src/extensionView.js:108
 msgid "Downgrade"
 msgstr ""
 
-#: src/extensionView.js:128
+#: src/extensionView.js:118
 msgid "Upgrade"
 msgstr ""
 
-#: src/extensionView.js:233
+#: src/extensionView.js:224
 #, javascript-format
 msgid "Version %s"
 msgstr ""

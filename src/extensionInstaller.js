@@ -603,7 +603,7 @@ var Widget = GObject.registerClass({
             this._extensionCreator.label = this._info.creator_markup;
             this._extensionIcon.gicon = this._info.icon;
         } else {
-            this._extensionCreator.label = null;
+            this._extensionCreator.label = _('Unknown Developer');
             this._extensionIcon.icon_name = 'ego-plugin';
         }
 

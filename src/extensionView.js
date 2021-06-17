@@ -10,11 +10,6 @@ const Shell = imports.shell;
 const ExtensionInstaller = imports.extensionInstaller;
 
 
-function _createLink(text, url) {
-    return `<a href="${url}">${text}</a>`;
-}
-
-
 /**
  * A simple dialog, tailored for displaying screenshots.
  */
@@ -522,12 +517,11 @@ var ExtensionView = GObject.registerClass({
         // Common
         if (this._info) {
             this._nameLabel.label = this._info.name;
-            this._creatorLabel.label = _createLink(this._info.creator,
-                this._info.creator_url);
+            this._creatorLabel.label = this._info.creator_markup;
             this._descriptionLabel.label = this._info.description;
         } else if (this._extension) {
             this._nameLabel.label = this._extension.name;
-            this._creatorLabel.label = null;
+            this._creatorLabel.label = _('Unknown Developer');
             this._descriptionLabel.label = this._extension.description;
         } else {
             this._nameLabel.label = null;
