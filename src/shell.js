@@ -109,7 +109,7 @@ async function loadExtension(dir, cancellable = null) {
     }
 
     // Add properties usually received over DBus
-    metadata.state = ExtensionType.DISABLED;
+    metadata.state = ExtensionState.UNINSTALLED;
     metadata.type = ExtensionType.USER;
     metadata.path = dir.get_path();
     metadata.error = '';
