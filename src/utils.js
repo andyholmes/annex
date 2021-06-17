@@ -109,7 +109,7 @@ function initLogging() {
 
 
 /**
- * A collection of process utilities.
+ * A collection of opinionated process utilities.
  */
 var Exec = {
     /**

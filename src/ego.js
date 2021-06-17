@@ -444,6 +444,7 @@ var Repository = GObject.registerClass({
         const message = Soup.form_request_new_from_hash('GET',
             `${EGO_DOWNLOAD_EXTENSION}${uuid}.shell-extension.zip`, parameters);
 
+        /* Cache the file in a predicatable place */
         let path = GLib.build_filenamev([CACHEDIR, 'download-extension',
             `${uuid}.shell-extension.zip`]);
 

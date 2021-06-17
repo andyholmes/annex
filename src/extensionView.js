@@ -55,15 +55,6 @@ const VersionRow = GObject.registerClass({
         'statusIcon',
         'versionLabel',
     ],
-    Properties: {
-        'info': GObject.ParamSpec.object(
-            'info',
-            'Result',
-            'The search info object',
-            GObject.ParamFlags.READWRITE,
-            Ego.ExtensionInfo.$gtype
-        ),
-    },
 }, class AnnexExtensionVersionRow extends Gtk.ListBoxRow {
     get release() {
         if (this._release === undefined)
@@ -97,7 +88,7 @@ const VersionRow = GObject.registerClass({
         switch (status) {
             case Ego.UpdateType.NONE:
                 this._statusIcon.icon_name = 'object-select-symbolic';
-                this._statusIcon.tooltip_text = _('Installed');
+                this._statusIcon.tooltip_text = _('Already installed');
                 break;
 
             case Ego.UpdateType.BLACKLIST:
@@ -289,6 +280,7 @@ const VersionDialog = GObject.registerClass({
     }
 
     _sort(row1, row2) {
+        // Sort installed version first
         if (row1.status === Ego.UpdateType.NONE)
             return -1;
 
@@ -541,6 +533,26 @@ var ExtensionView = GObject.registerClass({
         this._actions.website.enabled = this._extension && this._extension.url;
     }
 
+    // TODO: animation settings
+    _startPulse() {
+        if (this._progressId)
+            return;
+
+        this._progressButton.visible = true;
+        this._progressId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
+            this._progressBar.pulse();
+            return GLib.SOURCE_CONTINUE;
+        });
+    }
+
+    _stopPulse() {
+        if (this._progressId)
+            GLib.Source.remove(this._progressId);
+
+        this._progressId = 0;
+        this._progressButton.visible = false;
+    }
+
     /*
      * Shell.ExtensionManager Callbacks
      */
@@ -586,26 +598,6 @@ var ExtensionView = GObject.registerClass({
 
             dialog.present();
         });
-    }
-
-    // TODO: animation settings
-    _startPulse() {
-        if (this._progressId)
-            return;
-
-        this._progressButton.visible = true;
-        this._progressId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
-            this._progressBar.pulse();
-            return GLib.SOURCE_CONTINUE;
-        });
-    }
-
-    _stopPulse() {
-        if (this._progressId)
-            GLib.Source.remove(this._progressId);
-
-        this._progressId = 0;
-        this._progressButton.visible = false;
     }
 
     async _onInstallActivated() {
