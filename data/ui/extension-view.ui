@@ -55,6 +55,26 @@
           <object class="GtkBox" id="actionArea">
             <property name="spacing">12</property>
             <child>
+              <object class="GtkButton" id="prefsButton">
+                <property name="action-name">view.prefs</property>
+                <property name="icon-name">emblem-system-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Extension Preferences</property>
+                <property name="valign">center</property>
+                <property name="visible"
+                          bind-source="prefsButton"
+                          bind-property="sensitive"
+                          bind-flags="sync-create"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="pendingButton">
+                <property name="icon-name">view-refresh-symbolic</property>
+                <property name="sensitive">0</property>
+                <property name="valign">center</property>
+                <property name="visible">0</property>
+              </object>
+            </child>
+            <child>
               <object class="GtkButton" id="updateButton">
                 <property name="action-name">view.update</property>
                 <property name="label" translatable="yes">Update</property>
@@ -77,41 +97,49 @@
                           bind-source="installButton"
                           bind-property="sensitive"
                           bind-flags="sync-create"/>
+                <property name="width-request">64</property>
                 <style>
                   <class name="suggested-action"/>
                 </style>
               </object>
             </child>
             <child>
-              <object class="GtkButton" id="uninstallButton">
-                <property name="action-name">view.uninstall</property>
-                <property name="label" translatable="yes">Remove</property>
+              <object class="GtkButton" id="progressButton">
+                <property name="sensitive">0</property>
                 <property name="valign">center</property>
-                <property name="visible"
-                          bind-source="uninstallButton"
-                          bind-property="sensitive"
-                          bind-flags="sync-create"/>
+                <property name="visible">0</property>
+                <property name="width-request">64</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="halign">center</property>
+                        <property name="label" translatable="yes">Install</property>
+                        <property name="margin-bottom">5</property>
+                        <property name="margin-end">16</property>
+                        <property name="margin-start">16</property>
+                        <property name="margin-top">7</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkProgressBar" id="progressBar"/>
+                    </child>
+                  </object>
+                </child>
                 <style>
-                  <class name="destructive-action"/>
+                  <class name="installer-button"/>
                 </style>
               </object>
             </child>
             <child>
-              <object class="GtkButton" id="pendingButton">
-                <property name="icon-name">view-refresh-symbolic</property>
-                <property name="sensitive">0</property>
-                <property name="valign">center</property>
-                <property name="visible">0</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkButton" id="prefsButton">
-                <property name="action-name">view.prefs</property>
-                <property name="icon-name">emblem-system-symbolic</property>
-                <property name="tooltip-text" translatable="yes">Extension Preferences</property>
+              <object class="GtkButton" id="uninstallButton">
+                <property name="action-name">view.uninstall</property>
+                <property name="icon-name">user-trash-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Uninstall</property>
                 <property name="valign">center</property>
                 <property name="visible"
-                          bind-source="prefsButton"
+                          bind-source="uninstallButton"
                           bind-property="sensitive"
                           bind-flags="sync-create"/>
               </object>

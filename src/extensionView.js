@@ -3,7 +3,9 @@
 
 /* exported ExtensionView */
 
-const {Gio, GObject, Gtk} = imports.gi;
+const {GLib, Gio, GObject, Gtk} = imports.gi;
+
+const Tweener = imports.tweener.tweener;
 
 const Ego = imports.ego;
 const Shell = imports.shell;
@@ -335,6 +337,8 @@ var ExtensionView = GObject.registerClass({
         'uninstallButton',
         'pendingButton',
         'prefsButton',
+        'progressButton',
+        'progressBar',
 
         'screenshotBox',
         'screenshotPicture',
@@ -361,8 +365,8 @@ var ExtensionView = GObject.registerClass({
         this.insert_action_group('view', actionGroup);
 
         this._actions = {
-            prefs: this._onPrefsActivated,
             install: this._onInstallActivated,
+            prefs: this._onPrefsActivated,
             uninstall: this._onUninstallActivated,
             update: this._onUpdateActivated,
             versions: this._onVersionsActivated,
@@ -603,11 +607,41 @@ var ExtensionView = GObject.registerClass({
         });
     }
 
+    // TODO: animation settings
+    _startPulse() {
+        if (this._progressId)
+            return;
+
+        this._progressButton.visible = true;
+        this._progressId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
+            this._progressBar.pulse();
+            return GLib.SOURCE_CONTINUE;
+        });
+    }
+
+    _stopPulse() {
+        if (this._progressId)
+            GLib.Source.remove(this._progressId);
+
+        this._progressId = 0;
+        this._progressButton.visible = false;
+    }
+
     async _onInstallActivated() {
         try {
-            await this._manager.installExtension(this.uuid);
+            this._actions.install.enabled = false;
+            this._startPulse();
+
+            const result = await this._manager.installExtension(this.uuid,
+                this._cancellable);
+
+            if (result !== 'successful')
+                throw Error(result);
         } catch (e) {
             warning(e, this.uuid);
+        } finally {
+            this._stopPulse();
+            this._redraw();
         }
     }
 
