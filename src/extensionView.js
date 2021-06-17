@@ -326,9 +326,9 @@ var ExtensionView = GObject.registerClass({
     GTypeName: 'AnnexExtensionView',
     Template: 'resource:///ca/andyholmes/Annex/ui/extension-view.ui',
     InternalChildren: [
-        'iconImage',
-        'nameLabel',
-        'creatorLabel',
+        'extensionIcon',
+        'extensionName',
+        'extensionCreator',
         'contentScroll',
 
         'installButton',
@@ -338,7 +338,7 @@ var ExtensionView = GObject.registerClass({
 
         'screenshotBox',
         'screenshotPicture',
-        'descriptionLabel',
+        'extensionDescription',
     ],
     Properties: {
         'uuid': GObject.ParamSpec.string(
@@ -516,25 +516,25 @@ var ExtensionView = GObject.registerClass({
     _redraw() {
         // Common
         if (this._info) {
-            this._nameLabel.label = this._info.name;
-            this._creatorLabel.label = this._info.creator_markup;
-            this._descriptionLabel.label = this._info.description;
+            this._extensionName.label = this._info.name;
+            this._extensionCreator.label = this._info.creator_markup;
+            this._extensionDescription.label = this._info.description;
         } else if (this._extension) {
-            this._nameLabel.label = this._extension.name;
-            this._creatorLabel.label = _('Unknown Developer');
-            this._descriptionLabel.label = this._extension.description;
+            this._extensionName.label = this._extension.name;
+            this._extensionCreator.label = _('Unknown Developer');
+            this._extensionDescription.label = this._extension.description;
         } else {
-            this._nameLabel.label = null;
-            this._creatorLabel.label = null;
-            this._descriptionLabel.label = null;
+            this._extensionName.label = null;
+            this._extensionCreator.label = null;
+            this._extensionDescription.label = null;
             this._contentScroll.vadjustment.value = 0.0;
         }
 
         // Icon
         if (this._info && this._info.icon)
-            this._iconImage.gicon = this._info.icon;
+            this._extensionIcon.gicon = this._info.icon;
         else
-            this._iconImage.gicon = new Gio.ThemedIcon({name: 'ego-plugin'});
+            this._extensionIcon.gicon = new Gio.ThemedIcon({name: 'ego-plugin'});
 
         // Screenshot
         if (this._info && this._info.screenshot) {

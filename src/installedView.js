@@ -14,9 +14,9 @@ const InstalledViewRow = GObject.registerClass({
     GTypeName: 'AnnexInstalledViewRow',
     Template: 'resource:///ca/andyholmes/Annex/ui/installed-view-row.ui',
     InternalChildren: [
-        'iconImage',
-        'nameLabel',
-        'descriptionLabel',
+        'extensionIcon',
+        'extensionName',
+        'extensionDescription',
         'enabledSwitch',
         'errorImage',
         'updateImage',
@@ -62,7 +62,7 @@ const InstalledViewRow = GObject.registerClass({
     _init(extension) {
         super._init();
 
-        this.bind_property('name', this._nameLabel, 'label',
+        this.bind_property('name', this._extensionName, 'label',
             GObject.BindingFlags.SYNC_CREATE |
             GObject.BindingFlags.BIDIRECTIONAL);
 
@@ -70,11 +70,11 @@ const InstalledViewRow = GObject.registerClass({
     }
 
     get description() {
-        return this._descriptionLabel.label;
+        return this._extensionDescription.label;
     }
 
     set description(text) {
-        this._descriptionLabel.label = text.split('\n')[0];
+        this._extensionDescription.label = text.split('\n')[0];
     }
 
     get extension() {
@@ -107,14 +107,14 @@ const InstalledViewRow = GObject.registerClass({
     }
 
     get icon() {
-        return this._iconImage.gicon;
+        return this._extensionIcon.gicon;
     }
 
     set icon(icon) {
         if (icon === null)
             icon = new Gio.ThemedIcon({name: 'ego-plugin'});
 
-        this._iconImage.gicon = icon;
+        this._extensionIcon.gicon = icon;
     }
 
     get info() {

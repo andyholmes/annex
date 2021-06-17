@@ -10,7 +10,7 @@
         <property name="margin-bottom">8</property>
         <property name="column-spacing">12</property>
         <child>
-          <object class="GtkImage" id="iconImage">
+          <object class="GtkImage" id="extensionIcon">
             <property name="resource">/ca/andyholmes/Annex/icons/ego-plugin.svg</property>
             <property name="pixel-size">32</property>
             <property name="valign">center</property>
@@ -22,7 +22,7 @@
           </object>
         </child>
         <child>
-          <object class="GtkLabel" id="nameLabel">
+          <object class="GtkLabel" id="extensionName">
             <property name="ellipsize">end</property>
             <property name="hexpand">1</property>
             <property name="vexpand">1</property>
@@ -38,7 +38,7 @@
           </object>
         </child>
         <child>
-          <object class="GtkLabel" id="descriptionLabel">
+          <object class="GtkLabel" id="extensionDescription">
             <property name="ellipsize">end</property>
             <property name="hexpand">1</property>
             <property name="single-line-mode">1</property>

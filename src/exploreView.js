@@ -19,9 +19,9 @@ const ExploreViewRow = GObject.registerClass({
     GTypeName: 'AnnexExploreViewRow',
     Template: 'resource:///ca/andyholmes/Annex/ui/explore-view-row.ui',
     InternalChildren: [
-        'iconImage',
-        'nameLabel',
-        'descriptionLabel',
+        'extensionIcon',
+        'extensionName',
+        'extensionDescription',
     ],
     Properties: {
         'description': GObject.ParamSpec.string(
@@ -57,7 +57,7 @@ const ExploreViewRow = GObject.registerClass({
     _init(info) {
         super._init();
 
-        this.bind_property('name', this._nameLabel, 'label',
+        this.bind_property('name', this._extensionName, 'label',
             GObject.BindingFlags.SYNC_CREATE |
             GObject.BindingFlags.BIDIRECTIONAL);
 
@@ -65,22 +65,22 @@ const ExploreViewRow = GObject.registerClass({
     }
 
     get description() {
-        return this._descriptionLabel.label;
+        return this._extensionDescription.label;
     }
 
     set description(text) {
-        this._descriptionLabel.label = text.split('\n')[0];
+        this._extensionDescription.label = text.split('\n')[0];
     }
 
     get icon() {
-        return this._iconImage.gicon;
+        return this._extensionIcon.gicon;
     }
 
     set icon(icon) {
         if (icon === null)
             icon = new Gio.ThemedIcon({name: 'ego-plugin'});
 
-        this._iconImage.gicon = icon;
+        this._extensionIcon.gicon = icon;
     }
 
     get info() {
@@ -116,8 +116,8 @@ const ExploreViewTile = GObject.registerClass({
     GTypeName: 'AnnexExploreViewTile',
     Template: 'resource:///ca/andyholmes/Annex/ui/explore-view-tile.ui',
     InternalChildren: [
-        'iconImage',
-        'nameLabel',
+        'extensionIcon',
+        'extensionName',
     ],
     Properties: {
         'icon': GObject.ParamSpec.object(
@@ -146,7 +146,7 @@ const ExploreViewTile = GObject.registerClass({
     _init(info) {
         super._init();
 
-        this.bind_property('name', this._nameLabel, 'label',
+        this.bind_property('name', this._extensionName, 'label',
             GObject.BindingFlags.SYNC_CREATE |
             GObject.BindingFlags.BIDIRECTIONAL);
 
@@ -154,14 +154,14 @@ const ExploreViewTile = GObject.registerClass({
     }
 
     get icon() {
-        return this._iconImage.gicon;
+        return this._extensionIcon.gicon;
     }
 
     set icon(icon) {
         if (icon === null)
             icon = new Gio.ThemedIcon({name: 'ego-plugin'});
 
-        this._iconImage.gicon = icon;
+        this._extensionIcon.gicon = icon;
     }
 
     get info() {
