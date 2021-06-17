@@ -15,6 +15,7 @@
         <child>
           <object class="GtkStackPage">
             <property name="name">open</property>
+            <property name="title" translatable="yes">Open Extension</property>
             <property name="child">
               <object class="GtkBox">
                 <property name="hexpand">1</property>
@@ -99,6 +100,7 @@
         <child>
           <object class="GtkStackPage">
             <property name="name">review</property>
+            <property name="title" translatable="yes">Install Extension</property>
             <property name="child">
               <object class="GtkBox">
                 <property name="margin-start">32</property>
@@ -352,6 +354,7 @@
         <child>
           <object class="GtkStackPage">
             <property name="name">progress</property>
+            <property name="title" translatable="yes">Installing</property>
             <property name="child">
               <object class="GtkBox">
                 <property name="hexpand">1</property>
@@ -427,6 +430,7 @@
         <child>
           <object class="GtkStackPage">
             <property name="name">success</property>
+            <property name="title" translatable="yes">Installation Complete</property>
             <property name="child">
               <object class="GtkBox">
                 <property name="hexpand">1</property>
@@ -466,7 +470,7 @@
                     <child>
                       <object class="GtkLabel" id="successDescription">
                         <property name="justify">center</property>
-                        <property name="label" translatable="yes">Installation will complete at next login</property>
+                        <property name="label" translatable="yes">The extension will be available at next login</property>
                         <property name="wrap">1</property>
                         <property name="wrap-mode">word-char</property>
                       </object>
@@ -521,6 +525,7 @@
         <child>
           <object class="GtkStackPage">
             <property name="name">error</property>
+            <property name="title" translatable="yes">Error</property>
             <property name="child">
               <object class="GtkScrolledWindow">
                 <property name="hscrollbar-policy">never</property>

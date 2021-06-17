@@ -150,6 +150,13 @@ var Widget = GObject.registerClass({
             GObject.ParamFlags.READWRITE,
             'open'
         ),
+        'title': GObject.ParamSpec.string(
+            'title',
+            'Title',
+            'Installer Title',
+            GObject.ParamFlags.READABLE,
+            null
+        ),
         'uuid': GObject.ParamSpec.string(
             'uuid',
             'UUID',
@@ -168,7 +175,8 @@ var Widget = GObject.registerClass({
         this._proposed = null;
 
         this.bind_property('page', this._stack, 'visible-child-name',
-            GObject.BindingFlags.SYNC_CREATE);
+            GObject.BindingFlags.SYNC_CREATE |
+            GObject.BindingFlags.BIDIRECTIONAL);
 
         // Actions
         this._actionGroup = new Gio.SimpleActionGroup();
@@ -231,6 +239,13 @@ var Widget = GObject.registerClass({
         this._refresh();
     }
 
+    get title() {
+        if (this._title === null)
+            return this._title = null;
+
+        return this._title;
+    }
+
     get uuid() {
         if (this._proposed)
             return this._proposed.uuid;
@@ -239,9 +254,10 @@ var Widget = GObject.registerClass({
     }
 
     _onPageChanged(_stack, _pspec) {
-        const hasProposed = this._proposed !== null;
+        const child = this._stack.get_visible_child();
+        const page = this._stack.get_page(child);
 
-        switch (this._stack.get_visible_child_name()) {
+        switch (page.name) {
             case 'open':
                 this._actions.cancel.enabled = true;
                 this._actions.install.enabled = false;
@@ -250,7 +266,7 @@ var Widget = GObject.registerClass({
 
             case 'review':
                 this._actions.cancel.enabled = true;
-                this._actions.install.enabled = hasProposed;
+                this._actions.install.enabled = this._proposed !== null;
                 this._actions.previous.enabled = false;
                 break;
 
@@ -272,6 +288,9 @@ var Widget = GObject.registerClass({
                 this._actions.previous.enabled = true;
                 break;
         }
+
+        this._title = page.title;
+        this.notify('title');
     }
 
     /*
@@ -730,9 +749,16 @@ var Dialog = GObject.registerClass({
     _init(params = {}) {
         super._init(params);
 
+        // Bind the dialog to the widget, to pass the value at construction
         this.bind_property('file', this._installerWidget, 'file',
+            GObject.BindingFlags.SYNC_CREATE |
+            GObject.BindingFlags.BIDIRECTIONAL);
+
+        // Bind the widget to the dialog, to sync the value at construction
+        this._installerWidget.bind_property('title', this, 'title',
             GObject.BindingFlags.SYNC_CREATE);
 
+        // Inject the widget GActionGroup
         this.insert_action_group('installer',
             this._installerWidget._actionGroup);
     }
