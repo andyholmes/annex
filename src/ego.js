@@ -162,6 +162,33 @@ var ExtensionInfo = GObject.registerClass({
         this.notify('icon');
     }
 
+    get releases() {
+        /* A release is a minimal valid `metadata.json` with a `version_tag`. */
+        if (this._releases === undefined) {
+            this._releases = {};
+            const version_map = this.shell_version_map;
+
+            for (const [shell, release] of Object.entries(version_map)) {
+                if (this._releases[release.version] === undefined) {
+                    this._releases[release.version] = {
+                        uuid: this.uuid,
+                        name: this.name,
+                        description: this.description,
+                        shell_version: [],
+                        version: release.version,
+                        version_tag: release.pk,
+                    };
+                }
+
+                this._releases[release.version].shell_version.push(shell);
+            }
+
+            this._releases = Object.values(this._releases);
+        }
+
+        return this._releases;
+    }
+
     /**
      * Get the latest version.
      *

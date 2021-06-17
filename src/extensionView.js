@@ -251,30 +251,11 @@ const VersionDialog = GObject.registerClass({
         if (this.info === null)
             return;
 
-        /* Compile release list from version map, where a release is
-         * effectively a subset of `metadata.json` with a `version_tag`. */
-        const releases = {};
-        const version_map = this.info.shell_version_map;
-
-        for (const [shell, release] of Object.entries(version_map)) {
-            if (releases[release.version] === undefined) {
-                releases[release.version] = {
-                    name: this.info.name,
-                    shell_version: [],
-                    uuid: this.info.uuid,
-                    version: release.version,
-                    version_tag: release.pk,
-                };
-            }
-
-            releases[release.version].shell_version.push(shell);
-        }
-
         /* Add a row for each release */
         const manager = Shell.ExtensionManager.getDefault();
-        const shellVersion = manager.shellVersion;
+        const shellVersion = manager.shell_version;
 
-        for (const release of Object.values(releases)) {
+        for (const release of this.info.releases) {
             const row = new VersionRow();
             row.release = release;
 
