@@ -427,17 +427,7 @@ var Widget = GObject.registerClass({
     async _checkFile() {
         if (this.file && this._proposed === null) {
             try {
-                const info = this.file.query_info('standard::type',
-                    Gio.FileQueryInfoFlags.NONE, null);
-                const type = info.get_file_type();
-
-                let metadata;
-
-                if (type === Gio.FileType.DIRECTORY) {
-                    metadata = await Shell.loadExtension(this.file);
-                } else if (type === Gio.FileType.REGULAR){
-                    metadata = await Shell.extractExtension(this.file);
-                }
+                const metadata = await Shell.loadExtension(this.file);
 
                 if (this._proposed === null) {
                     this._proposed = new Shell.Extension(metadata);

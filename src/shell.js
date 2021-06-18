@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2021 Andy Holmes <andrew.g.r.holmes@gmail.com>
 
 /* exported ExtensionType, ExtensionState, Extension, ExtensionManager,
-       extractExtension, loadExtension, releaseCompatible, versionCompatible */
+       loadExtension, releaseCompatible, versionCompatible */
 
 const ByteArray = imports.byteArray;
 const {GLib, Gio, GObject} = imports.gi;
@@ -56,18 +56,104 @@ var ExtensionType = {
 
 
 /**
- * Load extension metadata from @dir
+ * Extract extension metadata from @zip.
  *
- * @param {Gio.File} dir - the directory
+ * If @dest is not given the extension will be extracted to a temporary
+ * directory. The resulting metadata key `path` will always point to @dest.
+ *
+ * @param {Gio.File} zip - the extension ZIP file
+ * @param {Gio.File} [dest] - the destination directory
  * @param {Gio.Cancellable} [cancellable] - optional cancellable
  * @return {Object} extension metadata
  */
-async function loadExtension(dir, cancellable = null) {
-    if (typeof dir === 'string')
-        dir = Gio.File.new_for_path(dir);
+async function extractZip(zip, dest = null, cancellable = null) {
+    if (dest === null) {
+        dest = GLib.Dir.make_tmp('XXXXXX.annex');
+        dest = Gio.File.new_for_path(dest);
+    }
+
+    // Spawn the process
+    const proc = new Gio.Subprocess({
+        argv: [
+            GLib.find_program_in_path('unzip'),
+            '-u',                  // Update
+            '-o',                  // Overwrite
+            '-d', dest.get_path(), // Target directory
+            zip.get_path(),        // Source archive
+        ],
+        flags: Gio.SubprocessFlags.STDOUT_SILENCE |
+            Gio.SubprocessFlags.STDERR_PIPE,
+    });
+    proc.init(cancellable);
+
+    // Connect the cancellable
+    let cancelId = 0;
+
+    if (cancellable instanceof Gio.Cancellable)
+        cancelId = cancellable.connect(() => proc.force_exit());
+
+    // On success return the destination as a GFile
+    return new Promise((resolve, reject) => {
+        proc.communicate_utf8_async(null, null, (_proc, res) => {
+            try {
+                const [_ok, _stdout, stderr] = proc.communicate_utf8_finish(res);
+                const status = proc.get_exit_status();
+
+                if (status !== 0) {
+                    throw new Gio.IOErrorEnum({
+                        code: Gio.io_error_from_errno(status),
+                        message: stderr ? stderr.trim() : GLib.strerror(status),
+                    });
+                }
+
+                resolve(dest);
+            } catch (e) {
+                reject(e);
+            } finally {
+                if (cancelId > 0)
+                    cancellable.disconnect(cancelId);
+            }
+        });
+    });
+}
+
+
+/**
+ * Attempt to load extension metadata from @file.
+ *
+ * If @file is a Zip file, it will be transparently extracted to a temporary
+ * directory before being scanned.
+ *
+ * @param {Gio.File} file - a Zip file or directory
+ * @param {Gio.Cancellable} [cancellable] - optional cancellable
+ * @return {Object} extension metadata
+ */
+async function loadExtension(file, cancellable = null) {
+    if (typeof file === 'string')
+        file = Gio.File.new_for_path(file);
+
+    const info = await new Promise((resolve, reject) => {
+        file.query_info_async(
+            'standard::type',
+            Gio.FileQueryInfoFlags.NONE,
+            GLib.PRIORITY_DEFAULT,
+            cancellable,
+            (_file, result) => {
+                try {
+                    resolve(_file.query_info_finish(result));
+                } catch (e) {
+                    reject(e);
+                }
+            }
+        );
+    });
+
+    // If we're passed a regular file, assume it's a Zip file
+    if (info.get_file_type() === Gio.FileType.REGULAR)
+        file = await extractZip(file, null, cancellable);
 
     // Check for `extension.js`
-    const extensionFile = dir.get_child('extension.js');
+    const extensionFile = file.get_child('extension.js');
 
     if (!extensionFile.query_exists(cancellable)) {
         throw new Gio.IOErrorEnum({
@@ -77,7 +163,7 @@ async function loadExtension(dir, cancellable = null) {
     }
 
     // Check for `metadata.json`
-    const metadataFile = dir.get_child('metadata.json');
+    const metadataFile = file.get_child('metadata.json');
 
     if (!metadataFile.query_exists(cancellable)) {
         throw new Gio.IOErrorEnum({
@@ -111,42 +197,13 @@ async function loadExtension(dir, cancellable = null) {
     // Add properties usually received over DBus
     metadata.state = ExtensionState.UNINSTALLED;
     metadata.type = ExtensionType.USER;
-    metadata.path = dir.get_path();
+    metadata.path = file.get_path();
     metadata.error = '';
-    metadata.hasPrefs = dir.get_child('prefs.js').query_exists(null);
+    metadata.hasPrefs = file.get_child('prefs.js').query_exists(null);
     metadata.hasUpdate = false;
     metadata.canChange = true;
 
     return metadata;
-}
-
-
-/**
- * Extract extension metadata from @zip.
- *
- * If @dest is not given the extension will be extracted to a temporary
- * directory. The resulting metadata key `path` will always point to @dest.
- *
- * @param {Gio.File} zip - the extension ZIP file
- * @param {Gio.File} [dest] - the destination directory, defaults to in-memory
- * @param {Gio.Cancellable} [cancellable] - optional cancellable
- * @return {Object} extension metadata
- */
-async function extractExtension(zip, dest = null, cancellable = null) {
-    if (dest === null) {
-        dest = GLib.Dir.make_tmp('XXXXXX.annex');
-        dest = Gio.File.new_for_path(dest);
-    }
-
-    await Exec.communicate([
-        GLib.find_program_in_path('unzip'),
-        '-u',                  // Update
-        '-o',                  // Overwrite
-        '-d', dest.get_path(), // Target directory
-        zip.get_path(),        // Source archive
-    ], null, cancellable);
-
-    return loadExtension(dest, cancellable);
 }
 
 
@@ -622,14 +679,14 @@ var ExtensionManager = GObject.registerClass({
      */
     async installExtensionFile(zip, cancellable = null) {
         // Extract and load the ZIP
-        const info = await extractExtension(zip, null, cancellable);
-        const src = Gio.File.new_for_path(info.path);
+        const metadata = await loadExtension(zip, cancellable);
+        const src = Gio.File.new_for_path(metadata.path);
 
         // If already installed, stage the ZIP as an update
-        let path = GLib.build_filenamev([EXTENSIONS_PATH, info.uuid]);
+        let path = GLib.build_filenamev([EXTENSIONS_PATH, metadata.uuid]);
 
-        if (this._extensions.has(info.uuid))
-            path = GLib.build_filenamev([EXTENSION_UPDATES_PATH, info.uuid]);
+        if (this._extensions.has(metadata.uuid))
+            path = GLib.build_filenamev([EXTENSION_UPDATES_PATH, metadata.uuid]);
 
         // Ensure we have a clean directory
         const dest = Gio.File.new_for_path(path);
