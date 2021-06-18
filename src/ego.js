@@ -111,13 +111,6 @@ var ExtensionInfo = GObject.registerClass({
             GObject.ParamFlags.READWRITE,
             Gio.File.$gtype
         ),
-        'url': GObject.ParamSpec.string(
-            'url',
-            'URL',
-            'URL of the extension',
-            GObject.ParamFlags.READWRITE,
-            null
-        ),
         'uuid': GObject.ParamSpec.string(
             'uuid',
             'UUID',
