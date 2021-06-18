@@ -92,7 +92,7 @@ const VersionRow = GObject.registerClass({
                 break;
 
             case Ego.UpdateType.BLACKLIST:
-                this._statusIcon.icon_name = 'dialog-warning-symbolic';
+                this._statusIcon.icon_name = 'action-unavailable-symbolic';
                 this._statusIcon.tooltip_text = _('Incompatible');
                 break;
 
@@ -205,6 +205,7 @@ const VersionDialog = GObject.registerClass({
     }
 
     _onPageChanged(_stack, _pspec) {
+        const release = this._installerWidget.release;
         const title = this.info ? this.info.name : null;
         let subtitle = _('Versions');
 
@@ -214,7 +215,7 @@ const VersionDialog = GObject.registerClass({
                 break;
 
             case 'install':
-                subtitle = _('Version %s').format(this._release.version);
+                subtitle = _('Version %s').format(release.version);
                 break;
         }
 
@@ -223,9 +224,7 @@ const VersionDialog = GObject.registerClass({
     }
 
     _onRowActivated(_box, row) {
-        this._release = row.release;
         this._installerWidget.release = row.release;
-
         this._installerWidget.page = 'review';
         this._stack.visible_child_name = 'install';
     }
@@ -250,15 +249,17 @@ const VersionDialog = GObject.registerClass({
             const row = new VersionRow();
             row.release = release;
 
-            if (this._extension) {
-                if (release.version === this._extension.version)
-                    row.status = Ego.UpdateType.NONE;
-                else if (release.version > this._extension.version)
-                    row.status = Ego.UpdateType.UPGRADE;
-                else if (release.version < this._extension.version)
-                    row.status = Ego.UpdateType.DOWNGRADE;
-            } else if (Shell.releaseCompatible(release, shellVersion)) {
-                row.status = Ego.UpdateType.NEW;
+            if (Shell.releaseCompatible(release, shellVersion)) {
+                if (this._extension) {
+                    if (release.version === this._extension.version)
+                        row.status = Ego.UpdateType.NONE;
+                    else if (release.version > this._extension.version)
+                        row.status = Ego.UpdateType.UPGRADE;
+                    else if (release.version < this._extension.version)
+                        row.status = Ego.UpdateType.DOWNGRADE;
+                } else {
+                    row.status = Ego.UpdateType.NEW;
+                }
             } else {
                 row.status = Ego.UpdateType.BLACKLIST;
             }

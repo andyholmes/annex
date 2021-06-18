@@ -502,13 +502,13 @@ var Widget = GObject.registerClass({
 
         if (this.release) {
             icon_name = 'security-high-symbolic';
-            title = _('Trusted Source');
-            description = 'https://extensions.gnome.org';
+            title = _('Verified Source');
+            description = _('Audited for malicious code');
             css_classes = ['installer-row-icon', 'success'];
         } else if (this.file) {
             icon_name = 'security-medium-symbolic';
             title = _('Unverified Source');
-            description = this.file.get_basename();
+            description = _('There may be security or privacy issues');
             css_classes = ['installer-row-icon', 'warning'];
         }
 

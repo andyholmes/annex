@@ -48,17 +48,38 @@ var SortType = {
     RECENT: 'recent',
 };
 
+
 /**
- * Enumeration of extension update types.
+ * Enumeration of extension update types. The majority of these are returned by
+ * extensions.gnome.org when queried for update-info, except where noted.
  *
  * @readonly
  * @enum {string}
  */
 var UpdateType = {
+    /**
+     * Non-standard: No action required. Used when a release is equivalent to
+     * the currently installed version.
+     */
     NONE: 'none',
+    /**
+     * Upgrades are blocked. TODO: explain this
+     */
     BLACKLIST: 'blacklist',
+    /**
+     * A downgrade is recommended. Used when the currently installed version is
+     * either unverified or not compatible.
+     */
     DOWNGRADE: 'downgrade',
+    /**
+     * Non-standard: install is recommended. Used when there is no installed
+     * version of a release; the comparison amounts to an install.
+     */
     NEW: 'new',
+    /**
+     * A upgrade is recommended. Used when a release is newer than the currently
+     * installed version.
+     */
     UPGRADE: 'upgrade',
 };
 
@@ -141,7 +162,7 @@ var ExtensionInfo = GObject.registerClass({
     }
 
     get icon() {
-        if (this._icon === undefined || this._icon === null)
+        if (this._icon === undefined)
             this._icon = new Gio.ThemedIcon({name: 'ego-plugin'});
 
         return this._icon;
@@ -242,7 +263,7 @@ var ExtensionInfo = GObject.registerClass({
         if (properties.screenshot) {
             repository.lookupFile(properties.screenshot).then(file => {
                 this.screenshot = file;
-            });
+            }).catch(warning);
         }
     }
 
@@ -513,10 +534,10 @@ var Repository = GObject.registerClass({
      *
      * @param {string} uuid - an extension UUID
      * @param {string} version - an extension version
-     * @param {string} shell_version - an GNOME Shell version
+     * @param {string} shell_version - a GNOME Shell version
      * @return {boolean} %true if update available
      */
-    async checkUpdate(uuid, version, shell_version = '') {
+    async checkUpdate(uuid, version, shell_version = 'all') {
         try {
             const info = await this.lookup(uuid);
             const latest = info.getLatestVersion(shell_version);

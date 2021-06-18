@@ -20,25 +20,52 @@ const EXTENSION_UPDATES_PATH = GLib.build_filenamev([GLib.get_user_data_dir(),
 
 
 /**
- * Enumeration of extension states.
+ * Enumeration of extension states. The majority of these are used by GNOME
+ * Shell, except where noted.
  *
  * @readonly
  * @enum {string}
  */
 var ExtensionState = {
-    /** The extension is enabled */
+    /**
+     * The extension is enabled. This implies the extension is installed and
+     * initialized, with no errors.
+     */
     ENABLED: 1,
-    /** The extension is disabled */
+    /**
+     * The extension is disabled. This implies the extension is installed and
+     * initialized, with no errors.
+     */
     DISABLED: 2,
-    /** The extension encountered an error */
+    /**
+     * The extension encountered an error. When an extension holds this state,
+     * the `error` property will hold an error message.
+     */
     ERROR: 3,
-    /** The extension is out of date */
+    /**
+     * The extension is out of date. This is a special error that occurs when an
+     * installed extension does not support the current GNOME Shell version.
+     */
     OUT_OF_DATE: 4,
-    /** The extension is downloading */
+    /**
+     * The extension is downloading. This state is used by the shell when
+     * installing a remote extension from extensions.gnome.org.
+     */
     DOWNLOADING: 5,
-    /** The extension is initialized */
+    /**
+     * The extension is initialized. This state is set by the shell after an
+     * extension's `init()` method has been invoked.
+     */
     INITIALIZED: 6,
-    /** The extension is not installed */
+    /**
+     * Non-standard: The extension is not initialized. This is used when an
+     * extension has been installed, but will not be loaded until next login.
+     */
+    UNINITIALIZED: 98,
+    /**
+     * The extension is not installed. This is not usually used by GNOME Shell,
+     * but Annex uses it for Zip files and other uninstalled extension sources.
+     */
     UNINSTALLED: 99,
 };
 
@@ -50,26 +77,30 @@ var ExtensionState = {
  * @enum {string}
  */
 var ExtensionType = {
+    /**
+     * A system extension, usually installed from a package manager.
+     */
     SYSTEM: 1,
+    /**
+     * A user extension, usually installed from extensions.gnome.org or a Zip.
+     */
     USER: 2,
 };
 
 
 /**
- * Extract extension metadata from @zip.
- *
- * If @dest is not given the extension will be extracted to a temporary
- * directory. The resulting metadata key `path` will always point to @dest.
+ * Extract @zip to @dest and return @dest on success. If @dest is not given @zip
+ * will be extracted to a temporary directory.
  *
  * @param {Gio.File} zip - the extension ZIP file
  * @param {Gio.File} [dest] - the destination directory
  * @param {Gio.Cancellable} [cancellable] - optional cancellable
- * @return {Object} extension metadata
+ * @return {Gio.File} the destination directory
  */
 async function extractZip(zip, dest = null, cancellable = null) {
     if (dest === null) {
-        dest = GLib.Dir.make_tmp('XXXXXX.annex');
-        dest = Gio.File.new_for_path(dest);
+        const path = GLib.Dir.make_tmp('XXXXXX.annex');
+        dest = Gio.File.new_for_path(path);
     }
 
     // Spawn the process
@@ -176,17 +207,17 @@ async function loadExtension(file, cancellable = null) {
     const metadata = await new Promise((resolve, reject) => {
         metadataFile.load_contents_async(cancellable, (_file, result) => {
             try {
-                const contents = _file.load_contents_finish(result)[1];
-                const json = ByteArray.toString(contents);
+                const byteArray = _file.load_contents_finish(result)[1];
+                const contents = ByteArray.toString(byteArray);
 
-                resolve(JSON.parse(json));
+                resolve(JSON.parse(contents));
             } catch (e) {
                 reject(e);
             }
         });
     });
 
-    // Minimum required properties
+    // Ensure minimum required properties
     const required = ['uuid', 'name', 'description', 'shell-version'];
 
     for (const name of required) {
@@ -194,14 +225,8 @@ async function loadExtension(file, cancellable = null) {
             throw ReferenceError(`metadata.json: missing "${name}" property`);
     }
 
-    // Add properties usually received over DBus
-    metadata.state = ExtensionState.UNINSTALLED;
-    metadata.type = ExtensionType.USER;
+    // Pre-set this property for caller's that need access to the files
     metadata.path = file.get_path();
-    metadata.error = '';
-    metadata.hasPrefs = file.get_child('prefs.js').query_exists(null);
-    metadata.hasUpdate = false;
-    metadata.canChange = true;
 
     return metadata;
 }
