@@ -18,8 +18,7 @@ const InstalledViewRow = GObject.registerClass({
         'extensionName',
         'extensionDescription',
         'enabledSwitch',
-        'errorImage',
-        'updateImage',
+        'statusIcon',
     ],
     Properties: {
         'description': GObject.ParamSpec.string(
@@ -94,8 +93,6 @@ const InstalledViewRow = GObject.registerClass({
             GObject.BindingFlags.SYNC_CREATE);
         extension.bind_property('uuid', this, 'uuid',
             GObject.BindingFlags.SYNC_CREATE);
-        extension.bind_property('has-update', this._updateImage, 'visible',
-            GObject.BindingFlags.SYNC_CREATE);
         extension.connect('notify::state',
             this._onStateChanged.bind(this));
 
@@ -129,22 +126,47 @@ const InstalledViewRow = GObject.registerClass({
             case Shell.ExtensionState.ENABLED:
                 this._enabledSwitch.state = true;
                 this._enabledSwitch.sensitive = true;
-                this._errorImage.visible = false;
+                this._statusIcon.visible = false;
                 break;
 
             case Shell.ExtensionState.DISABLED:
                 this._enabledSwitch.state = false;
                 this._enabledSwitch.sensitive = true;
-                this._errorImage.visible = false;
+                this._statusIcon.visible = false;
                 break;
 
             case Shell.ExtensionState.OUT_OF_DATE:
+                this._statusIcon.icon_name = 'dialog-warning-symbolic';
+                this._statusIcon.tooltip_text = _('Update Required');
+                this._statusIcon.visible = true;
+                break;
+
             case Shell.ExtensionState.ERROR:
                 this._enabledSwitch.sensitive = false;
-                this._errorImage.icon_name = 'dialog-error-symbolic';
-                this._errorImage.tooltip_text = this.extension.error;
-                this._errorImage.visible = true;
+                this._statusIcon.icon_name = 'dialog-error-symbolic';
+                this._statusIcon.tooltip_text = this.extension.error;
+                this._statusIcon.visible = true;
                 break;
+
+            case Shell.ExtensionState.UNINSTALLED:
+                this._enabledSwitch.sensitive = false;
+                this._statusIcon.icon_name = 'dialog-error-symbolic';
+                this._statusIcon.tooltip_text = this.extension.error;
+                this._statusIcon.visible = true;
+                break;
+        }
+
+        // The extension can be updated
+        if (this.extension.can_update) {
+            this._statusIcon.icon_name = 'software-update-available-symbolic';
+            this._statusIcon.tooltip_text = _('Update Available');
+            this._statusIcon.visible = true;
+
+        // The extension has an update pending
+        } else if (this.extension.has_update) {
+            this._statusIcon.icon_name = 'view-refresh-symbolic';
+            this._statusIcon.tooltip_text = _('Update Available');
+            this._statusIcon.visible = true;
         }
     }
 

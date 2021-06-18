@@ -64,19 +64,7 @@
               <property name="row-span">2</property>
             </layout>
             <child>
-              <object class="GtkImage" id="updateImage">
-                <property name="icon-name">software-update-available-symbolic</property>
-                <property name="tooltip-text" translatable="yes">Update Available</property>
-                <property name="valign">center</property>
-                <property name="pixel-size">24</property>
-                <property name="visible">0</property>
-                <style>
-                  <class name="dim-label"/>
-                </style>
-              </object>
-            </child>
-            <child>
-              <object class="GtkImage" id="errorImage">
+              <object class="GtkImage" id="statusIcon">
                 <property name="icon-name">dialog-error-symbolic</property>
                 <property name="valign">center</property>
                 <property name="pixel-size">24</property>
