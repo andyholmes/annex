@@ -451,18 +451,6 @@ var ExtensionView = GObject.registerClass({
         }
     }
 
-    async _refresh() {
-        if (this.uuid !== null) {
-            // Only wait for the info if the extension is unavailable
-            if (await this._checkExtension())
-                this._checkInfo().then(this._redraw.bind(this));
-            else
-                await this._checkInfo();
-
-            this._redraw();
-        }
-    }
-
     /*
      * UI
      */
@@ -551,6 +539,22 @@ var ExtensionView = GObject.registerClass({
 
         this._progressId = 0;
         this._progressButton.visible = false;
+    }
+
+    async _refresh() {
+        if (this.uuid !== null) {
+            const hasExtension = await this._checkExtension();
+            const hasInfo = this._checkInfo()
+                .then(this._checkUpdate.bind(this))
+                .then(this._redraw.bind(this))
+                .catch(debug);
+
+            // Only wait for the info if the extension is unavailable
+            if (hasExtension)
+                this._redraw();
+            else
+                await hasInfo;
+        }
     }
 
     /*
